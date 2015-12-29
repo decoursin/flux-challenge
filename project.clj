@@ -20,7 +20,7 @@
                         :source-paths ["src"]
                         :figwheel {:on-jsload "verbling.core/mount-root"}
                         :compiler {:main verbling.core
-                                   :output-to "resources/public/js/compiled/app.js"
+                                   :output-to "resources/public/js/compiled/verbling.js"
                                    :output-dir "resources/public/js/compiled/out"
                                    :asset-path "js/compiled/out"
                                    :source-map-timestamp true}}
@@ -28,7 +28,7 @@
                        {:id "min"
                         :source-paths ["src"]
                         :compiler {:main verbling.core
-                                   :output-to "resources/public/js/compiled/app.js"
+                                   :output-to "resources/public/js/compiled/verbling.js"
                                    :optimizations :advanced
                                    :closure-defines {goog.DEBUG false}
                                    :pretty-print false}}]}

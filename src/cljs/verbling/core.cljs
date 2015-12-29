@@ -1,7 +1,6 @@
 (ns verbling.core
     (:require [reagent.core :as reagent]
               [re-frame.core :as re-frame]
-              [verbling.handlers]
               [verbling.subs]
               [verbling.views :as views]
               [verbling.config :as config]))
