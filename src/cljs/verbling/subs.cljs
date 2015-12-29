@@ -1,8 +1,10 @@
 (ns verbling.subs
     (:require-macros [reagent.ratom :refer [reaction]])
-    (:require [re-frame.core :as re-frame]))
+    (:require [re-frame.core :as re-frame]
+              [verbling.db :refer [sith-db]]))
 
 (re-frame/register-sub
- :name
- (fn [db]
-   (reaction (:name @db))))
+ :siths
+ (fn [db [_]]
+   (reaction @sith-db)))
+    ;; (map #(assoc % :name "therenow") @sith-db))))
