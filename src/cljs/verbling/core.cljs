@@ -24,6 +24,7 @@
 
 (defn ^:export init [] 
   (println "hi there")
+  (re-frame/dispatch-sync [:initialize-db])
   (mount-root))
 
 (init)

@@ -3,38 +3,50 @@
                    [cljs.core.async.macros :refer [go go-loop]])
   (:require [re-frame.core :as re-frame]
             [cljs-http.client :as http]
-            [verbling.handlers :refer [get-sith]]
-            [verbling.db :refer [sith-db]]
+            [verbling.handlers :refer [load-sith]]
+            [verbling.db :refer [Direction]]
+            [schema.core :as s]
             [reagent.core :as reagent]))
 
 (defn sith-component [{:keys [name homeworld] :as sith}]
   (println "sith component: " sith)
-  ;; [(with-meta identity
-     ;; {:component-did-update #(re-frame/dispatch [:loaded-sith-ui sith])})
-   [:li.css-slot
-    (when (not (empty? name))
-      [:div 
-       [:h3 name]
-       [:h6 (str "Homeworld: " (:name homeworld))]])])
+  (let [this (reagent/current-component)] 
+      (reagent/create-class
+       {:component-did-mount #(println "COMPONENT DID MOUNT")
+        ;; component-should-update *only for performance* they say
+        :component-will-update (fn [this a b]
+                                 (println "COMPONENT WILL UPDATE" a b))
+        :component-did-update
+        (fn [this]
+          (let [sith (reagent/props this)
+                id (get-in sith [:apprentice :id])]
+            (println "COMPONENT DID UPDATE: " sith)
+            (re-frame/dispatch [:set-sith id (:direction sith)])))
 
-;; (defn button-click [direction e]
-;;   (println "button clicked: " direction " event: " e)
-;;   (let [queue-event (Event. :arrow direction nil)
-;;         disabled? (aget (.-classList (.-target e)) 1)]
-;;     (when (not disabled?)
-;;       (put! event-queue queue-event))))
+        :component-will-receive-props
+        (fn [this new-props]
+          (println "COMPONENT WILL RECEIVE PROPS: " new-props)
+          true)
+        ;; :component-did-update #(re-frame/dispatch [:loaded-sith-ui sith])
 
+        :display-name "sith-component"
 
-(defn run []
-  (go (let [sith (<! (get-sith 3616))]
-        (println "sith: " (:name sith))
-        (swap! sith-db #(assoc-in % [0 :name] (:name sith))))))
+        :reagent-render
+        (fn [{:keys [name homeworld] :as sith}]
+          (println "reagent-render: " sith)
+          [:li.css-slot
+          ^{:key sith}
+           (when (not (empty? name))
+             [:div 
+              [:h3 name]
+              [:h6 (str "Homeworld: " (:name homeworld))]])])})))
+              ;; [:h6 (str "Homeworld: " (:name homeworld))]])])})]))
 
 (defn main []
+  (re-frame/dispatch [:set-sith 3616 :down])
   (let [silence-up-button (reagent/atom false)
         silence-down-button (reagent/atom false)
         siths (re-frame/subscribe [:siths])] 
-    (run)
        (fn []
          (println "rendering main")
          [:div.css-root
@@ -44,10 +56,10 @@
             (for [sith @siths]
               [sith-component sith])]
            [:div.css-scroll-buttons
-            [:button.css-button-up {:class (when @silence-up-button "css-button-disabled")}]
-                                    ;; :on-click (partial button-click :up)}
-            [:button.css-button-down {:class (when @silence-down-button "css-button-disabled")}]]]])))
-;; :on-click (partial button-click :down)
+            [:button.css-button-up {:class (when @silence-up-button "css-button-disabled")
+                                    :on-click (re-frame/dispatch [:button-click :up])}]
+            [:button.css-button-down {:class (when @silence-down-button "css-button-disabled")
+                                      :on-click (re-frame/dispatch [:button-click :down])}]]]])))
 
   ;; (let [name (re-frame/subscribe [:name])]
   ;;   (fn []
