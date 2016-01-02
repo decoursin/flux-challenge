@@ -9,7 +9,9 @@
 
   :min-lein-version "2.5.3"
 
-  :source-paths ["src/cljs"]
+  :source-paths ["src"]
+
+  :test-paths ["test"]
 
   :plugins [[lein-cljsbuild "1.1.1"]
             [lein-figwheel "0.5.0-2"]]
