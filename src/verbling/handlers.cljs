@@ -3,6 +3,7 @@
                    [schema.macros :as sm])
   (:require [re-frame.core :as re-frame]
             [cljs-http.client :as http]
+            [verbling.deque :refer [empty-at-location? assoc-sith push-down push-up]]
             [schema.core :as s]
             [verbling.db :refer [Direction app-db empty-sith-template]]))
 
@@ -29,14 +30,6 @@
  :initialize-db
  re-frame/debug
  (fn [] app-db))
-
-(re-frame/register-handler
- :update-siths
- [re-frame/debug
-  (re-frame/path :siths)]
- (fn [old-siths [_ new-siths]]
-   new-siths))
-   ;; (assoc old-db :siths new-db)))
 
 (s/defn dark-jedis-request :- s/Str
   [id :- s/Int]
@@ -73,19 +66,29 @@
     (+  1 (current-sith-position db (get-in sith [:master :id])))
     (+ -1 (current-sith-position db (get-in sith [:apprentice :id])))))
 
+(re-frame/register-handler
+ :update-siths
+ [re-frame/debug
+  (re-frame/path :siths)]
+ (fn [siths [_ sith]]
+   (let [location (find-location siths sith)]
+     (assoc-sith siths location sith))))
+
 (s/defn set-sith
   [siths [_
           id ;; For some reason, typing this results that direction is nil???
-          direction :- Direction]]
+          direction; :- Direction
+          location]]
   (s/validate (s/maybe s/Int) id)
-  (when id
+  (println "siths: " siths)
+  (println "location: " location)
+  (when (and id (empty-at-location? siths location))
     (go (let [sith (<! (load-sith id))
-              sith (assoc sith :direction direction)
-              location (find-location siths sith)
-              updated-siths (assoc siths location sith)]
+              sith (assoc sith :direction direction)]
+              ;; location (find-location siths sith)]
+              ;; updated-siths (assoc-sith siths location sith)]
           (s/validate s/Int location)
-          (re-frame/dispatch [:update-siths updated-siths]))))
-          ;; (swap! db #(assoc-in % [:siths location] sith)))))
+          (re-frame/dispatch [:update-siths sith]))))
     siths)
 
 (re-frame/register-handler
@@ -94,28 +97,24 @@
   (re-frame/path :siths)]
  set-sith)
 
-;; (defn shift [buttons direction]
-;;   (println "shifting... " direction)
-;;   (if (= direction :up)
-;;     (println "shift up.")
-;;     (println "shift down."))
-;;   (buttons))
-    ;; (swap! db #(-> (into [] (drop 1 %))
-    ;;                (conj (empty-sith-template))))
-    ;; (swap! db #(->> (drop-last 1 %)
-    ;;                (into [(empty-sith-template)])))))
-  ;; (println @db))
+(defn shift [siths direction]
+  (println "shifting... " direction)
+  (if (= direction :up)
+    (push-up siths)
+    (push-down siths)))
 
-;; (s/defn button-click
-;;   [buttons [_ :- s/Keyword
-;;             direction :- Direction
-;;             e]]
-;;   (js/console.log e)
-;;   (shift buttons direction))
+(s/defn button-click
+  [siths [_
+            direction
+            e]]
+  (js/console.log e)
+  (println "siths: " siths)
+  (println "direction: " direction)
+  (shift siths direction))
 
 (re-frame/register-handler
  :button-click
  [re-frame/debug
-  (re-frame/path :buttons)]
- (fn [db [_ direction]] (do (println "button-click: " db) db)))
- ;; button-click)
+  (re-frame/path :siths)]
+ ;; (fn [db [_ direction]] (do (println "button-click: " db) db)))
+ button-click)

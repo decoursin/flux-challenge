@@ -1,6 +1,7 @@
 (ns verbling.db
   (:require [reagent.core :as reagent]
-            [schema.core :as s]))
+            [schema.core :as s]
+            [verbling.deque :refer [deque set-default-in-deque!]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; Schemas
 
@@ -14,10 +15,13 @@
 (defn empty-sith-template []
   {:id -1 :direction nil, :name "", :homeworld {:name "", :id 0} :master -1, :apprentice -1})
 
-(def siths
+(def v
   (into [] (repeat 5 (empty-sith-template))))
 
-(defonce app-db
+(set-default-in-deque! (empty-sith-template))
+(def siths (deque v))
+
+(def app-db
   {:siths siths
    :buttons []})
 

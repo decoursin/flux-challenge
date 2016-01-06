@@ -8,9 +8,12 @@
             [schema.core :as s]
             [reagent.core :as reagent]))
 
-(defn sith-component [{:keys [name homeworld] :as sith}]
+(defn sith-component [sith location]
   (println "sith component: " sith)
-  (let [this (reagent/current-component)] 
+  (println "number: " location)
+  (let [name (:name sith)
+        homework (:homeworld sith)
+        this (reagent/current-component)]
       (reagent/create-class
        {:component-did-mount #(println "COMPONENT DID MOUNT")
         ;; component-should-update *only for performance* they say
@@ -18,10 +21,13 @@
                                  (println "COMPONENT WILL UPDATE" a b))
         :component-did-update
         (fn [this]
-          (let [sith (reagent/props this)
-                id (get-in sith [:apprentice :id])]
-            (println "COMPONENT DID UPDATE: " sith)
-            (re-frame/dispatch [:set-sith id (:direction sith)])))
+          (println "COMPONENT DID UPDATE: " sith)
+          (when (<= location 3)
+            (let [sith (reagent/props this)
+                  id (get-in sith [:apprentice :id])
+                  location-of-apprentice (+ 1 location)]
+              (when id 
+                (re-frame/dispatch [:set-sith id (:direction sith) location-of-apprentice])))))
 
         :component-will-receive-props
         (fn [this new-props]
@@ -43,23 +49,31 @@
               ;; [:h6 (str "Homeworld: " (:name homeworld))]])])})]))
 
 (defn main []
-  (re-frame/dispatch [:set-sith 3616 :down])
+  (re-frame/dispatch [:set-sith 3616 :down 0])
   (let [silence-up-button (reagent/atom false)
         silence-down-button (reagent/atom false)
-        siths (re-frame/subscribe [:siths])] 
+        siths (re-frame/subscribe [:siths])
+        third #(nth % 2)
+        fourth #(nth % 3)
+        fifth #(nth % 4)] 
        (fn []
          (println "rendering main")
          [:div.css-root
           [:h1.css-planet-monitor "Obi-Wan currently on Tatooine"]
           [:section.css-scrollable-list
            [:ul.css-slots
-            (for [sith @siths]
-              [sith-component sith])]
+            [sith-component (first @siths) 0]
+            [sith-component (second @siths) 1]
+            [sith-component (third @siths) 2]
+            [sith-component (fourth @siths) 3]
+            [sith-component (fifth @siths) 4]]
+            ;; (for [sith @siths]
+            ;;   [sith-component sith])]
            [:div.css-scroll-buttons
-            [:button.css-button-up {:class (when @silence-up-button "css-button-disabled")
-                                    :on-click (re-frame/dispatch [:button-click :up])}]
-            [:button.css-button-down {:class (when @silence-down-button "css-button-disabled")
-                                      :on-click (re-frame/dispatch [:button-click :down])}]]]])))
+            [:button.css-button-up {;:class (when @silence-up-button "css-button-disabled")
+                                    :on-click (fn [e] (re-frame/dispatch [:button-click :up e]))}]
+            [:button.css-button-down {;:class (when @silence-down-button "css-button-disabled")
+                                      :on-click (fn [e] (re-frame/dispatch [:button-click :down e]))}]]]])))
 
   ;; (let [name (re-frame/subscribe [:name])]
   ;;   (fn []
