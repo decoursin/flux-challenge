@@ -3,7 +3,7 @@
                    [schema.macros :as sm])
   (:require [re-frame.core :as re-frame]
             [cljs-http.client :as http]
-            [verbling.deque :refer [empty-at-location? assoc-sith push-down push-up]]
+            [verbling.deque :refer [is-empty? set-direction empty-at-location? assoc-sith push-down push-up]]
             [schema.core :as s]
             [verbling.db :refer [Direction app-db empty-sith-template]]))
 
@@ -55,14 +55,15 @@
     (= id (get-in db [2 :id])) 2
     (= id (get-in db [3 :id])) 3
     (= id (get-in db [4 :id])) 4
-    :else -1))
+    (is-empty? db) -1
+    :else -9999))
 
 (s/defn find-location :- s/Int
-  [db sith]
   "Returns the location in the db
    where the sith should be placed [0-5]."
+  [db sith]
   (println "find-location: " sith)
-  (if (= :down (:direction sith))
+  (if (= :up (:direction sith))
     (+  1 (current-sith-position db (get-in sith [:master :id])))
     (+ -1 (current-sith-position db (get-in sith [:apprentice :id])))))
 
@@ -82,11 +83,9 @@
   (s/validate (s/maybe s/Int) id)
   (println "siths: " siths)
   (println "location: " location)
-  (when (and id (empty-at-location? siths location))
+  (when (and id (empty-at-location? siths location)) ;; and is not already-pending
     (go (let [sith (<! (load-sith id))
               sith (assoc sith :direction direction)]
-              ;; location (find-location siths sith)]
-              ;; updated-siths (assoc-sith siths location sith)]
           (s/validate s/Int location)
           (re-frame/dispatch [:update-siths sith]))))
     siths)
@@ -105,12 +104,14 @@
 
 (s/defn button-click
   [siths [_
-            direction
-            e]]
+          direction
+          e]]
   (js/console.log e)
   (println "siths: " siths)
   (println "direction: " direction)
-  (shift siths direction))
+  (-> siths
+      (shift direction)
+      (set-direction direction)))
 
 (re-frame/register-handler
  :button-click

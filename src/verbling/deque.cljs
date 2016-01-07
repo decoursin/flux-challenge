@@ -8,12 +8,14 @@
   (-pop-front [this] "pop the first element")
   (-pop-back [this] "pop the last element")
   (push-up [this] "push the deque up, removing top, adding default to the bottom")
-  (push-down [this] "push the deque down, removing bottom, adding default to top")
-  (push-front-and-pop-back [this a])
-  (push-back-and-pop-front [this a]))
+  (push-down [this] "push the deque down, removing bottom, adding default to top"))
+  ;; (push-front-and-pop-back [this a])
+  ;; (push-back-and-pop-front [this a]))
 (defprotocol ISith
   (assoc-sith [this k v])
-  (empty-at-location? [this location] "test whether or not there's a sith at location"))
+  (empty-at-location? [this location] "test whether or not there's a sith at location")
+  (set-direction [this direction] "set the :direction entry for each sith in v")
+  (is-empty? [this] "true if all 5 elements are empty"))
 
   ;; IDeque
   ;; (pop-front [this]
@@ -46,28 +48,47 @@
                (deque (into [] (drop-last 1 this))))
              (push-down [this]
                (println "push-down")
-               (push-front-and-pop-back this @default))
+               (assert (= 5 (count this)) (str "count is not 5: " this))
+               (-> this
+                   (-pop-back)
+                   (-push-front @default)))
+               ;; (let [d (-pop-back this)
+               ;;       d (-push-front d @default)]
+               ;;   d))
              (push-up [this]
                (println "push-up")
-               (push-back-and-pop-front this @default))
-             (push-back-and-pop-front [this x]
-               (println "push-back-and-pop-front")
-               (let [d (-push-back this x)
-                     d (-pop-front d)]
-                 (deque (into [] d))))
-             (push-front-and-pop-back [this x]
-               (println "push-front-and-pop-back")
-               (let [d (-push-front this x)  
-                     d (-pop-back d)]
-                 (deque (into [] d))))
+               (assert (= 5 (count this)) (str "count is not 5: " this))
+               (-> this
+                   (-pop-front)
+                   (-push-back @default)))
+               ;; (let [d (-pop-front this)
+               ;;       d (-push-back d @default)]
+               ;;   d))
              ISith
              (assoc-sith [this k value]
-               (println "assoc-sith")
-               (deque (into [] (assoc v k value))))
+               (println "assoc-sith: " k value)
+               (if (and (<= k 4) (>= k 0))
+                 (deque (into [] (assoc v k value)))
+                 this))
              (empty-at-location? [this location]
-               ;; location should be 0 <= location <= 5
                (println "empty at location?: " location)
                (println "name at this location? " (get-in this [location :name]))
-               (println "true or false? " (empty? (get-in this [location :name])))
-               (empty? (get-in this [location :name])))
+               ;; location should be 0 <= location <= 4
+               (if (and (>= location 0) (<= location 4))
+                 (do
+                   (println "true or false: " (empty? (get-in this [location :name])))
+                   (empty? (get-in this [location :name])))
+                 (do
+                   (println "true or false: " false)
+                   false)))
+             (set-direction [this direction]
+               (println "set-direction: " direction)
+               (deque (mapv #(assoc % :direction direction) this)))
+             (is-empty? [this]
+               (and
+                (empty-at-location? this 0)
+                (empty-at-location? this 1)
+                (empty-at-location? this 2)
+                (empty-at-location? this 3)
+                (empty-at-location? this 4)))
              )))
