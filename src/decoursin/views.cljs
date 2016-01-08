@@ -1,10 +1,10 @@
-(ns verbling.views
+(ns decoursin.views
   (:require-macros [reagent.ratom :refer [reaction]]
                    [cljs.core.async.macros :refer [go go-loop]])
   (:require [re-frame.core :as re-frame]
             [cljs-http.client :as http]
-            [verbling.handlers :refer [load-sith]]
-            [verbling.db :refer [Direction]]
+            [decoursin.handlers :refer [load-sith]]
+            [decoursin.db :refer [Direction]]
             [schema.core :as s]
             [reagent.core :as reagent]))
 
@@ -86,6 +86,12 @@
          ^{:Key (fifth  @siths)} [sith-component (fifth  @siths) 4]]
         [:div.css-scroll-buttons
          [:button.css-button-up {:class (when @disable-up-button "css-button-disabled")
-                                 :on-click (fn [e] (re-frame/dispatch [:button-click :up e]))}]
+                                 :on-click
+                                 (fn [e]
+                                   (when-not @disable-up-button
+                                     (re-frame/dispatch [:button-click :up e])))}]
          [:button.css-button-down {:class (when @disable-down-button "css-button-disabled")
-                                   :on-click (fn [e] (re-frame/dispatch [:button-click :down e]))}]]]])))
+                                   :on-click
+                                   (fn [e]
+                                     (when-not @disable-down-button
+                                       (re-frame/dispatch [:button-click :down e])))}]]]])))

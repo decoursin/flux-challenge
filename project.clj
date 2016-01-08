@@ -1,4 +1,4 @@
-(defproject verbling "0.1.0-SNAPSHOT"
+(defproject decoursin "0.1.0-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.189"]
                  [org.clojure/core.async "0.2.374"]
@@ -18,9 +18,9 @@
 
   :cljsbuild {:builds [{:id "dev"
                         :source-paths ["src" "dev"]
-                        :compiler {:main verbling.dev
+                        :compiler {:main decoursin.dev
                                    :optimizations :none
-                                   :output-to "resources/public/js/compiled/verbling.js"
+                                   :output-to "resources/public/js/compiled/decoursin.js"
                                    :output-dir "resources/public/js/compiled/out"
                                    :asset-path "js/compiled/out"
                                    :source-map true
@@ -29,8 +29,8 @@
 
                        {:id "min"
                         :source-paths ["src" "dev"]
-                        :compiler {:main verbling.core
-                                   :output-to "resources/public/js/compiled/verbling.js"
+                        :compiler {:main decoursin.core
+                                   :output-to "resources/public/js/compiled/decoursin.js"
                                    :optimizations :advanced
                                    :closure-defines {goog.DEBUG false}
                                    :pretty-print false}}]}
@@ -42,7 +42,7 @@
 
              :repl true
 
-             :on-jsload "verbling.core/mount-root"
+             :on-jsload "decoursin.core/mount-root"
 
              ;; Start an nREPL server into the running figwheel process
              ;; :nrepl-port 7888

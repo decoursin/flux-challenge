@@ -1,4 +1,4 @@
-(ns verbling.config
+(ns decoursin.config
   (:require [schema.core :as s]))
 
 (def debug?

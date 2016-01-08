@@ -1,4 +1,4 @@
-(ns verbling.deque
+(ns decoursin.deque
   (:require [schema.core :as s]))
 
 ;; TODO: rename top/front and back/bottom

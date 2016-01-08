@@ -1,7 +1,7 @@
-(ns verbling.db
+(ns decoursin.db
   (:require [reagent.core :as reagent]
             [schema.core :as s]
-            [verbling.deque :refer [deque set-default-in-deque!]]))
+            [decoursin.deque :refer [deque set-default-in-deque!]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; Schemas
 

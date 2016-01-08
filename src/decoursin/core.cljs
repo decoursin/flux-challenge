@@ -1,13 +1,14 @@
-(ns verbling.core
+(ns decoursin.core
   (:require-macros [cljs.core.async.macros :refer [go-loop]])
-  (:require [reagent.core :as reagent]
+  (:require [decoursin.config :as config]
+            [reagent.core :as reagent]
             [re-frame.core :as re-frame]
-            [verbling.handlers]
-            [verbling.subs]
+            [decoursin.handlers]
+            [decoursin.subs]
             [chord.client :refer [ws-ch]]
             [cljs.core.async :as a]
-            [verbling.views :as views]
-            [verbling.config :as config]))
+            [decoursin.views :as views]
+            ))
 
 ;; (when config/debug?
 ;;   (println "dev mode"))

@@ -78,7 +78,7 @@ The Jedi Master requested you to make a dashboard-like UI showing a list of Sith
 
 ### Submission
 
-- Edit `submission/verbling/` with your code
+- Edit `submission/decoursin/` with your code
 - Place all your client-side code in that repository, must include `index.html` in your submission folder.
 - Run the server like this: `cd server` then `npm install` (just once) then `npm start`.
 - Remember to use `styles.css` in your `index.html` solution.

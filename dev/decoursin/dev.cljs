@@ -1,6 +1,6 @@
-(ns verbling.dev
+(ns decoursin.dev
   (:require [figwheel.client :as fw]
-            [verbling.core :as core]))
+            [decoursin.core :as core]))
             ;; [clojure.browser.repl :as repl]))
 
 (fw/start {:on-jsload core/mount-root

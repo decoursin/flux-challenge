@@ -1,4 +1,4 @@
-(ns verbling.handlers
+(ns decoursin.handlers
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]
                    [schema.macros :as sm])
   (:require [re-frame.core :as re-frame]
@@ -6,11 +6,11 @@
             [medley.core :refer [dissoc-in]]
             [cljs.core.async :refer [<! chan]]
             [cljs-http.core :as http]
-            [verbling.deque :refer [get-first-non-empty-sith is-empty?
+            [decoursin.deque :refer [get-first-non-empty-sith is-empty?
                                     set-direction empty-at-location?
                                     assoc-sith push-down push-up]]
             [schema.core :as s]
-            [verbling.db :refer [Direction app-db empty-sith-template]]))
+            [decoursin.db :refer [Direction app-db empty-sith-template]]))
 
 (def ^:const port 3000)
 
