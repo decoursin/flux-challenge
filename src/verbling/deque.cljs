@@ -9,17 +9,12 @@
   (-pop-back [this] "pop the last element")
   (push-up [this] "push the deque up, removing top, adding default to the bottom")
   (push-down [this] "push the deque down, removing bottom, adding default to top"))
-  ;; (push-front-and-pop-back [this a])
-  ;; (push-back-and-pop-front [this a]))
 (defprotocol ISith
   (assoc-sith [this k v])
   (empty-at-location? [this location] "test whether or not there's a sith at location")
   (set-direction [this direction] "set the :direction entry for each sith in v")
-  (is-empty? [this] "true if all 5 elements are empty"))
-
-  ;; IDeque
-  ;; (pop-front [this]
-  ;;            (println)))
+  (is-empty? [this] "true if all 5 elements are empty")
+  (get-first-non-empty-sith [this direction] "first sith from bottom or top, depending on direction"))
 
 (def default (atom))
 
@@ -52,18 +47,12 @@
                (-> this
                    (-pop-back)
                    (-push-front @default)))
-               ;; (let [d (-pop-back this)
-               ;;       d (-push-front d @default)]
-               ;;   d))
              (push-up [this]
                (println "push-up")
                (assert (= 5 (count this)) (str "count is not 5: " this))
                (-> this
                    (-pop-front)
                    (-push-back @default)))
-               ;; (let [d (-pop-front this)
-               ;;       d (-push-back d @default)]
-               ;;   d))
              ISith
              (assoc-sith [this k value]
                (println "assoc-sith: " k value)
@@ -91,4 +80,10 @@
                 (empty-at-location? this 2)
                 (empty-at-location? this 3)
                 (empty-at-location? this 4)))
+             (get-first-non-empty-sith [this direction]
+               (println "get-first-non-empty-sith, direction: " direction)
+               (let [coll (if (= :down direction)
+                            (reverse this)
+                            this)]
+                 (first (keep-indexed (fn [i m] (when (not-empty (:name m)) [m i])) coll))))
              )))

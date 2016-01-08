@@ -5,11 +5,10 @@
                  [prismatic/schema "1.0.3"]
                  [reagent "0.5.1"]
                  [re-frame "0.6.0"]
+                 [jarohen/chord "0.7.0"]
                  [cljs-http "0.1.37"]]
 
   :min-lein-version "2.5.3"
-
-  :source-paths ["src"]
 
   :test-paths ["test"]
 
@@ -18,8 +17,7 @@
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
 
   :cljsbuild {:builds [{:id "dev"
-                        :source-paths ["dev"]
-                        :figwheel {:on-jsload "verbling.core/mount-root"}
+                        :source-paths ["src" "dev"]
                         :compiler {:main verbling.dev
                                    :optimizations :none
                                    :output-to "resources/public/js/compiled/verbling.js"
@@ -30,7 +28,7 @@
                                    :source-map-timestamp true}}
 
                        {:id "min"
-                        :source-paths ["dev"]
+                        :source-paths ["src" "dev"]
                         :compiler {:main verbling.core
                                    :output-to "resources/public/js/compiled/verbling.js"
                                    :optimizations :advanced
@@ -43,6 +41,8 @@
              :css-dirs ["resources/public/css"] ;; watch and update CSS
 
              :repl true
+
+             :on-jsload "verbling.core/mount-root"
 
              ;; Start an nREPL server into the running figwheel process
              ;; :nrepl-port 7888

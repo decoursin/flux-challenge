@@ -9,16 +9,11 @@
             [reagent.core :as reagent]))
 
 (defn sith-component [sith location]
-  (println "sith component: " sith)
-  (println "number: " location)
-  (let [name (:name sith)
-        homework (:homeworld sith)
-        this (reagent/current-component)]
+  (let [this (reagent/current-component)]
     (reagent/create-class
      {:component-did-mount #(println "COMPONENT DID MOUNT")
         ;; component-should-update *only for performance* they say
-      :component-will-update (fn [this a b]
-                               (println "COMPONENT WILL UPDATE" a b))
+      ;; :component-will-update
       :component-did-update
       (fn [this]
         (println "COMPONENT DID UPDATE: " sith)
@@ -42,7 +37,6 @@
       (fn [this new-props]
         (println "COMPONENT WILL RECEIVE PROPS: " new-props)
         true)
-        ;; :component-did-update #(re-frame/dispatch [:loaded-sith-ui sith])
 
       :display-name "sith-component"
 
@@ -57,33 +51,41 @@
             [:h6 (str "Homeworld: " (:name homeworld))]])])})))
               ;; [:h6 (str "Homeworld: " (:name homeworld))]])])})]))
 
+;; (defn world-component [{:keys [id name]}]
+;;   (println "world component")
+;;   ;; (reagent/create-class
+;;   ;;  {:component-did-update
+;;   ;;   (fn [this]
+;;   ;;     (println "world component-did-update")
+;;   ;;     (let [world (reagent/props this)]
+;;   ;;       (println "world: " world)
+;;   ;;       (re-frame/dispatch [:obi-changed-planet wolr]))
+;;       ;; )})
+;;   [:div.]
+;;   )
+
 (defn main []
   (re-frame/dispatch [:set-sith 3616 :up 0])
-  (let [silence-up-button (reagent/atom false)
-        silence-down-button (reagent/atom false)
+  (let [disable-up-button (re-frame/subscribe [:disable-up-button?])
+        disable-down-button (re-frame/subscribe [:disable-down-button?])
         siths (re-frame/subscribe [:siths])
+        planet (re-frame/subscribe [:planet])
         third #(nth % 2)
         fourth #(nth % 3)
         fifth #(nth % 4)] 
     (fn []
-      (println "rendering main")
+      (println "rendering main: ")
       [:div.css-root
-       [:h1.css-planet-monitor "Obi-Wan currently on Tatooine"]
+       [:h1.css-planet-monitor "Obi-Wan currently on " (:name @planet)]
        [:section.css-scrollable-list
         [:ul.css-slots
-         [sith-component (first @siths) 0]
-         [sith-component (second @siths) 1]
-         [sith-component (third @siths) 2]
-         [sith-component (fourth @siths) 3]
-         [sith-component (fifth @siths) 4]]
-            ;; (for [sith @siths]
-            ;;   [sith-component sith])]
+         ^{:Key (first  @siths)} [sith-component (first  @siths) 0]
+         ^{:Key (second @siths)} [sith-component (second @siths) 1]
+         ^{:Key (third  @siths)} [sith-component (third  @siths) 2]
+         ^{:Key (fourth @siths)} [sith-component (fourth @siths) 3]
+         ^{:Key (fifth  @siths)} [sith-component (fifth  @siths) 4]]
         [:div.css-scroll-buttons
-         [:button.css-button-up {;:class (when @silence-up-button "css-button-disabled")
+         [:button.css-button-up {:class (when @disable-up-button "css-button-disabled")
                                  :on-click (fn [e] (re-frame/dispatch [:button-click :up e]))}]
-         [:button.css-button-down {;:class (when @silence-down-button "css-button-disabled")
+         [:button.css-button-down {:class (when @disable-down-button "css-button-disabled")
                                    :on-click (fn [e] (re-frame/dispatch [:button-click :down e]))}]]]])))
-
-  ;; (let [name (re-frame/subscribe [:name])]
-  ;;   (fn []
-  ;;     [:div "Hello from " @name])))

@@ -23,6 +23,9 @@
 
 (def app-db
   {:siths siths
-   :buttons []})
+   :requests {:up nil, :down nil}
+   :planet {:id nil, :name nil}})
 
 (println "app-db: " app-db)
+
+
