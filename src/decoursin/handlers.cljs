@@ -181,8 +181,8 @@
   [siths direction]
   (println "shift | direction: " direction)
   (if (= direction :up)
-    (push-up siths)
-    (push-down siths)))
+    (push-up (push-up siths))
+    (push-down (push-down siths))))
 
 (s/defn handle-button-click
   "Shift the deque up or down, depending on direction, and possibly
