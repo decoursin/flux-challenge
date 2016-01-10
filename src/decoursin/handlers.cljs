@@ -1,16 +1,13 @@
 (ns decoursin.handlers
-  (:require-macros [cljs.core.async.macros :refer [go go-loop]]
-                   [schema.macros :as sm])
-  (:require [re-frame.core :as re-frame]
+  (:require-macros [cljs.core.async.macros :refer [go]])
+  (:require [cljs.core.async :refer [<! chan close!]]
             [cljs-http.client :as client]
-            [medley.core :refer [dissoc-in]]
-            [cljs.core.async :refer [<! chan close!]]
-            [cljs-http.core :as http]
+            [decoursin.db :as db :refer [Direction]]
             [decoursin.deque :refer [get-first-non-empty-sith is-empty?
                                     set-direction empty-at-location?
-                                    assoc-sith push-down push-up]]
-            [schema.core :as s]
-            [decoursin.db :as db :refer [Direction empty-sith-template]]))
+                                     assoc-sith push-down push-up]]
+            [re-frame.core :as re-frame]
+            [schema.core :as s]))
 
 (def ^:const port 3000)
 
@@ -56,7 +53,9 @@
 
 (s/defn find-location :- s/Int
   "Returns the location in the siths
-   where the sith should be placed [0-5]."
+   where the sith should be placed [0-4],
+   determined by where it's apprentice
+   exclusive or master is located"
   [siths sith]
   (println "find-location")
   (if (= :up (:direction sith))
@@ -67,6 +66,9 @@
  :update-siths
  standard-middleware
  (fn [db [_ sith]]
+   "We received a sith that was fetched from the server. Assoc
+    it into it's location; and remove it from the pending requests
+    because it's finished so no longer pending"
    (println ":handle-update-siths")
    (let [siths (:siths db)
          location (find-location siths sith)
@@ -83,13 +85,17 @@
   (re-frame/path :requests)]
  ;; TODO prismatic schema
  (fn [requests [_ cancel-chan direction id]]
+   "We're pending a request from the server for a sith with this id,
+    add it to pending"
    (println ":handle-pending-requests")
    (assoc requests direction {:id id :channel cancel-chan})))
 
 ;;;;;;;;;;;;;;;;;;;;;;; set-sith handler
 
-(s/defn load-sith [id :- s/Int]
-  (println "load-sith | id: " id)
+(s/defn fetch-sith
+  "Fetch the sith from the server."
+  [id :- s/Int]
+  (println "fetch-sith | id: " id)
   (let [url (str "http://localhost:" port "/dark-jedis/" id)
         cancel-chan (chan 5)
         sith-chan (client/get url {:accepts :json
@@ -99,6 +105,12 @@
     [cancel-chan sith-chan]))
 
 (s/defn handle-set-sith
+  "In Re-frame, to change the db after asynchronous waiting,
+   we must dispatch to a different handler to make the change;
+   for this reason, in the when clause below, we dispatch
+   to :update-siths and :update-pending-requests handlers. The
+   :update-pending-requests dispatch must occur before we resolve
+   the sith-channel using <!"
   [db [_
           id ;; For some reason, typing this results that direction is nil???
           direction; :- Direction
@@ -111,7 +123,7 @@
              (empty-at-location? siths location) ;; is the sith  already in there?
              (not= id (:id pending))) ;; waiting for a response for this sith?
       ;; when, do
-      (let [[cancel-chan sith-chan] (load-sith id)]
+      (let [[cancel-chan sith-chan] (fetch-sith id)]
         (re-frame/dispatch [:update-pending-requests cancel-chan direction id])
         (go (let [new-sith (<! sith-chan)
                   new-sith (assoc new-sith :direction direction)]
@@ -134,16 +146,23 @@
   (close! channel))
 
 ;; TODO: make this better use top/bottom instead.
-(defn opposite-direction
+(s/defn opposite-direction
+  "This is terrible haha and a hack of sorts. The problem is that
+   we cancel the pending requests when scrolling in the opposite
+   that they were loaded from"
   [direction]
   (case direction
     :up :down
     :down :up
     nil))
 
-(s/defn cancel-obsolete-request
+(s/defn cancel-obsolete-pending-request
+  "A pending request is obsolete, after scroll, only when the position
+   that a sith would be placed on the deque is no longer available
+   due to scrolling while the sith is being fetched from the server. In
+   this case, the sith's position, after scroll, is <0 or >4"
   [requests siths direction]
-  (println "cancel-obsolete-request")
+  (println "cancel-obsolete-pending-request")
   (let [pending-request-chan (:channel (get requests (opposite-direction direction)))
         [first-sith location] (get-first-non-empty-sith siths direction)
         remain (if (= :up direction)
@@ -155,13 +174,19 @@
         (assoc requests (opposite-direction direction) {:id -1, :channel nil}))
       requests)))
 
-(defn shift [siths direction]
+(s/defn shift
+  "Shift the deque up or down depending on direction. The result is
+   that we remove from one side, and we add the default empty-sith-template
+   to the other"
+  [siths direction]
   (println "shift | direction: " direction)
   (if (= direction :up)
     (push-up siths)
     (push-down siths)))
 
 (s/defn handle-button-click
+  "Shift the deque up or down, depending on direction, and possibly
+   cancel the only pending request in that direction"
   [db [_
           direction
           e]]
@@ -170,7 +195,7 @@
   (let [siths (-> (:siths db)
                   (shift direction)
                   (set-direction direction))
-        request (cancel-obsolete-request (:requests db) siths direction)]
+        request (cancel-obsolete-pending-request (:requests db) siths direction)]
     (-> db
         (assoc :siths siths)
         (assoc :requests request))))
@@ -183,6 +208,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; websocket handler
 
 (s/defn handle-ws-message
+  "handle websocket messages, by updating the :planet field"
   [old-planet [_ new-planet]]
   (println ":handle-ws-message | new-planet: " new-planet)
   (clojure.walk/keywordize-keys new-planet))

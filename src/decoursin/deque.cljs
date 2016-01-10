@@ -3,7 +3,6 @@
 
 (declare deque)
 
-;; TODO: rename top/front and back/bottom
 (defprotocol IDeque
   (-push-front [this a] "push a onto the front")
   (-push-back [this a] "push a onto the back")
@@ -68,13 +67,10 @@
                  this))
              (empty-at-location? [this location]
                (println "deque empty at location?: " location)
-               ;; (println "name at this location? " (get-in this [location :name]))
                (if (and (>= location 0) (<= location 4))
                  (do
-                   ;; (println "true or false: " (empty? (get-in this [location :name])))
                    (empty? (get-in this [location :name])))
                  (do
-                   ;; (println "true or false: " false)
                    false)))
              (set-direction [this direction]
                (println "deque set-direction | direction: " direction)
@@ -92,5 +88,5 @@
                (let [coll (if (= :down direction)
                             (reverse this)
                             this)]
-                 (first (keep-indexed (fn [i m] (when (not-empty (:name m)) [m i])) coll))))
+                 (first (keep-indexed (fn [i m] (when (seq (:name m)) [m i])) coll))))
              ))

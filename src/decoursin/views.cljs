@@ -1,17 +1,18 @@
 (ns decoursin.views
-  (:require-macros [reagent.ratom :refer [reaction]]
-                   [cljs.core.async.macros :refer [go go-loop]])
-  (:require [re-frame.core :as re-frame]
-            [cljs-http.client :as http]
-            [decoursin.handlers :refer [load-sith]]
-            [decoursin.db :refer [Direction]]
-            [schema.core :as s]
-            [reagent.core :as reagent]))
+  (:require [decoursin.db :refer [Direction]]
+            [reagent.core :as reagent]
+            [re-frame.core :as re-frame]))
 
-(defn sith-component [sith location]
+(defn sith-component
+  "Renders the Sith name (ex: Darth Vader) along with
+   his homeworld. If we render, check to see if his apprentice
+   exlusive or master should also be rendered, determined by
+   the direction"
+  [sith location]
   (let [this (reagent/current-component)]
     (reagent/create-class
      {:display-name "sith-component"
+
       :component-did-update
       (fn [this]
         (println "component-did-update")
@@ -27,11 +28,12 @@
                                (+  -1 location)])]
           (when (pos? id)
             (re-frame/dispatch [:set-sith id direction location]))))
+
       :reagent-render
       (fn [{:keys [name homeworld obi-wan-is-here] :as sith}]
         (println "reagent-render")
         [:li.css-slot
-         (when (not (empty? name))
+         (when (seq name)
            [:div
             [:h3 (when obi-wan-is-here {:style {:color "red"}})
              name]
@@ -42,21 +44,18 @@
   (let [disable-up-button (re-frame/subscribe [:disable-up-button?])
         disable-down-button (re-frame/subscribe [:disable-down-button?])
         siths (re-frame/subscribe [:siths])
-        planet (re-frame/subscribe [:planet])
-        third #(nth % 2)
-        fourth #(nth % 3)
-        fifth #(nth % 4)] 
+        planet (re-frame/subscribe [:planet])]
     (fn []
       (println "rendering main")
       [:div.css-root
        [:h1.css-planet-monitor "Obi-Wan currently on " (:name @planet)]
        [:section.css-scrollable-list
         [:ul.css-slots
-         ^{:Key (first  @siths)} [sith-component (first  @siths) 0]
-         ^{:Key (second @siths)} [sith-component (second @siths) 1]
-         ^{:Key (third  @siths)} [sith-component (third  @siths) 2]
-         ^{:Key (fourth @siths)} [sith-component (fourth @siths) 3]
-         ^{:Key (fifth  @siths)} [sith-component (fifth  @siths) 4]]
+         ^{:Key (nth @siths 0)} [sith-component (nth @siths 0) 0]
+         ^{:Key (nth @siths 1)} [sith-component (nth @siths 1) 1]
+         ^{:Key (nth @siths 2)} [sith-component (nth @siths 2) 2]
+         ^{:Key (nth @siths 3)} [sith-component (nth @siths 3) 3]
+         ^{:Key (nth @siths 4)} [sith-component (nth @siths 4) 4]]
         [:div.css-scroll-buttons
          [:button.css-button-up {:class (when @disable-up-button "css-button-disabled")
                                  :on-click

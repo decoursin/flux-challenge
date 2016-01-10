@@ -7,21 +7,13 @@
             [decoursin.subs]
             [chord.client :refer [ws-ch]]
             [cljs.core.async :as a]
-            [decoursin.views :as views]
-            ))
+            [decoursin.views :as views]))
 
-;; (when config/debug?
-;;   (println "dev mode"))
-
-;; (defn mount-root []
-;;   (reagent/render [views/main-panel]
-;;                   (.getElementById js/document "app")))
-
-;; (defn ^:export init [] 
-;;   (re-frame/dispatch-sync [:initialize-db])
-;;   (mount-root))
+(when config/debug?
+  (println "dev mode"))
 
 (defn connect-to-websocket []
+  (println "connect-to-websocket")
   (go-loop []
     (let [{:keys [ws-channel]} (<! (ws-ch "ws://localhost:4000"
                                           {:format :json
