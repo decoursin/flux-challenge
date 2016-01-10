@@ -25,7 +25,7 @@
                               (and (= :down direction) (>= location 0))
                               [(get-in sith [:master :id])
                                (+  -1 location)])]
-          (when id
+          (when (pos? id)
             (re-frame/dispatch [:set-sith id direction location]))))
       :reagent-render
       (fn [{:keys [name homeworld obi-wan-is-here] :as sith}]
