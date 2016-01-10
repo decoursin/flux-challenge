@@ -149,16 +149,10 @@
         remain (if (= :up direction)
                  location
                  (- 4 location))]
-    ;; TODO get rid of this
-    (println "first-sith: " first-sith)
-    (println "pending-request-chan: " pending-request-chan)
-    (println "his direction: " direction)
-    (println "his location: " location)
-    (println "remain: " remain)
     (if (and pending-request-chan (>= remain location))
       (do
         (cancel-request! pending-request-chan)
-        (assoc requests (opposite-direction direction) nil))
+        (assoc requests (opposite-direction direction) {:id -1, :channel nil}))
       requests)))
 
 (defn shift [siths direction]
