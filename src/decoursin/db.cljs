@@ -17,7 +17,10 @@
            :apprentice {:url (s/maybe s/Str) :id (s/maybe s/Num)}})
 
 (def schema {:siths [Sith]
-             :requests {:up (s/maybe ManyToManyChannel), :down (s/maybe ManyToManyChannel)}
+             :requests {:up {:id (s/maybe s/Num)
+                             :channel (s/maybe ManyToManyChannel)}
+                        :down {:id (s/maybe s/Num)
+                               :channel (s/maybe ManyToManyChannel)}}
              :planet {:id s/Num, :name s/Str}})
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Public
@@ -37,7 +40,7 @@
 
 (def app-db
   {:siths siths
-   :requests {:up nil, :down nil}
+   :requests {:up {:id -1 :channel nil}, :down {:id -1 :channel nil}}
    :planet {:id -1, :name ""}})
 
 (s/validate schema app-db)

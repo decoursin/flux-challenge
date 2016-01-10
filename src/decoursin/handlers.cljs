@@ -4,7 +4,7 @@
   (:require [re-frame.core :as re-frame]
             [cljs-http.client :as client]
             [medley.core :refer [dissoc-in]]
-            [cljs.core.async :refer [<! chan]]
+            [cljs.core.async :refer [<! chan close!]]
             [cljs-http.core :as http]
             [decoursin.deque :refer [get-first-non-empty-sith is-empty?
                                     set-direction empty-at-location?
@@ -58,7 +58,7 @@
   "Returns the location in the siths
    where the sith should be placed [0-5]."
   [siths sith]
-  (println "find-location: " sith "\n from: siths: " siths)
+  (println "find-location")
   (if (= :up (:direction sith))
     (+  1 (current-sith-position siths (get-in sith [:master :id])))
     (+ -1 (current-sith-position siths (get-in sith [:apprentice :id])))))
@@ -67,32 +67,36 @@
  :update-siths
  standard-middleware
  (fn [db [_ sith]]
-   (println "handler :update-siths")
+   (println ":handle-update-siths")
    (let [siths (:siths db)
          location (find-location siths sith)
          buttons (:buttons db)]
      (-> db
          (assoc :siths (assoc-sith siths location sith))
-         (assoc-in [:requests (:direction sith)] nil)))))
+         (assoc-in [:requests (:direction sith)] {:id -1 :channel nil})))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;; set-sith handler
+;;;;;;;;;;;;;;;;;;;;;;;; update pending request
 
-(s/defn dark-jedis-request :- s/Str
-  [id :- s/Int]
-  (let [url (str "http://localhost:" port "/dark-jedis/")]
-    (println url)
-    (if (nil? id)
-      url
-      (str url id))))
+(re-frame/register-handler
+ :update-pending-requests
+ [standard-middleware
+  (re-frame/path :requests)]
+ ;; TODO prismatic schema
+ (fn [requests [_ cancel-chan direction id]]
+   (println ":handle-pending-requests")
+   (assoc requests direction {:id id :channel cancel-chan})))
+
+;;;;;;;;;;;;;;;;;;;;;;; set-sith handler
 
 (s/defn load-sith [id :- s/Int]
   (println "load-sith | id: " id)
-  (let [cancel (chan 5)]
-    [cancel
-     (go (let [sith (:body (<! (client/get (dark-jedis-request id) {:accepts :json
-                                                                    :with-credentials? false
-                                                                    :cancel cancel})))]
-           sith))]))
+  (let [url (str "http://localhost:" port "/dark-jedis/" id)
+        cancel-chan (chan 5)
+        sith-chan (client/get url {:accepts :json
+                                   :channel (chan 1 (map :body))
+                                   :with-credentials? false
+                                   :cancel cancel-chan})]
+    [cancel-chan sith-chan]))
 
 (s/defn handle-set-sith
   [db [_
@@ -100,17 +104,20 @@
           direction; :- Direction
           location]]
   (s/validate (s/maybe s/Int) id)
-  (println "db: " db)
+  (println ":handle-set-sith")
   (let [siths (:siths db)
-        request (get (:requests db) direction)] 
-    (if (and id (empty-at-location? siths location)) ;; and is not already-pending
-      (let [[cancel-channel sith-channel] (load-sith id)]
-        (go (let [sith (<! sith-channel)
-                  sith (assoc sith :direction direction)]
-            (s/validate s/Int location)
-            (re-frame/dispatch [:update-siths sith])))
-        (assoc-in db [:requests direction] cancel-channel))
-      db)))
+        pending (get (:requests db) direction)] 
+    (when (and (pos? id) ;; valid sith?
+             (empty-at-location? siths location) ;; is the sith  already in there?
+             (not= id (:id pending))) ;; waiting for a response for this sith?
+      ;; when, do
+      (let [[cancel-chan sith-chan] (load-sith id)]
+        (re-frame/dispatch [:update-pending-requests cancel-chan direction id])
+        (go (let [new-sith (<! sith-chan)
+                  new-sith (assoc new-sith :direction direction)]
+            (re-frame/dispatch [:update-siths new-sith])))))
+      ;; always
+      db))
 
 (re-frame/register-handler
  :set-sith
@@ -119,10 +126,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; buttons clicks handler
 
-(s/defn cancel-request
-  [request]
-  (println "cancel-request | request: " request)
-  (println "abort response? " (http/abort! request)))
+(s/defn cancel-request!
+  "closing the cancel channel, cancels
+   the sith-chan. Search cljs-http issues for more"
+  [channel]
+  (println "cancelling request")
+  (close! channel))
 
 ;; TODO: make this better use top/bottom instead.
 (defn opposite-direction
@@ -132,25 +141,25 @@
     :down :up
     nil))
 
-(s/defn cancel-obsolete-requests
+(s/defn cancel-obsolete-request
   [requests siths direction]
-  (println "cancel-obsolete-requests")
-  (let [request (get requests (opposite-direction direction))
+  (println "cancel-obsolete-request")
+  (let [pending-request-chan (:channel (get requests (opposite-direction direction)))
         [first-sith location] (get-first-non-empty-sith siths direction)
         remain (if (= :up direction)
-                     location
-                     (- 4 location))]
+                 location
+                 (- 4 location))]
+    ;; TODO get rid of this
     (println "first-sith: " first-sith)
+    (println "pending-request-chan: " pending-request-chan)
     (println "his direction: " direction)
     (println "his location: " location)
     (println "remain: " remain)
-    (assoc
-     requests direction
-     (when (>= remain location)
-       (do
-         (println "canceling... ")
-         (cancel-request request)
-         request)))))
+    (if (and pending-request-chan (>= remain location))
+      (do
+        (cancel-request! pending-request-chan)
+        (assoc requests (opposite-direction direction) nil))
+      requests)))
 
 (defn shift [siths direction]
   (println "shift | direction: " direction)
@@ -163,11 +172,11 @@
           direction
           e]]
   (js/console.log e)
-  (println "handler :handle-button-click | direction: " direction)
+  (println ":handle-button-click | direction: " direction)
   (let [siths (-> (:siths db)
                   (shift direction)
                   (set-direction direction))
-        request (cancel-obsolete-requests (:requests db) siths direction)]
+        request (cancel-obsolete-request (:requests db) siths direction)]
     (-> db
         (assoc :siths siths)
         (assoc :requests request))))
@@ -181,11 +190,10 @@
 
 (s/defn handle-ws-message
   [old-planet [_ new-planet]]
-  (println "handler :handle-ws-message | new-planet: " new-planet)
+  (println ":handle-ws-message | new-planet: " new-planet)
   (clojure.walk/keywordize-keys new-planet))
 
 (re-frame/register-handler
  :ws-message
- [standard-middleware
-  (re-frame/path :planet)]
+ (re-frame/path :planet)
  handle-ws-message)
