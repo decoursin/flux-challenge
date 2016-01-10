@@ -10,23 +10,28 @@
                                     set-direction empty-at-location?
                                     assoc-sith push-down push-up]]
             [schema.core :as s]
-            [decoursin.db :refer [Direction app-db empty-sith-template]]))
+            [decoursin.db :as db :refer [Direction empty-sith-template]]))
 
 (def ^:const port 3000)
 
-;;;;;;;;;;;;;;;;;;;;;;;;; Schemas
-
 ;;;;;;;;;;;;;;;;;;;;;;;;; Middleware
 
-;; (defn check-and-throw
-;;   "throw an exception if db doesn't match the schema."
-;;   [a-schema db]
-;;   (if-let [problems  (s/check a-schema db)]
-;;     (throw (js/Error. (str "schema check failed: " problems)))))
+(defn check-and-throw
+  "throw an exception if db doesn't match the schema."
+  [a-schema db]
+  (if-let [problems  (s/check a-schema db)]
+    (do
+      (println "db: " db)
+      (println "the-schema: " a-schema)
+      (throw (js/Error. (str "schema check failed: " problems))))))
+
+(def check-schema-mw (re-frame/after (partial check-and-throw db/schema)))
+
+(def standard-middleware (when ^boolean goog.DEBUG
+                            (comp re-frame/debug check-schema-mw)))
 
 ;; ;; after an event handler has run, this middleware can check that
 ;; ;; it the value in app-db still correctly matches the schema.
-;; (def check-schema-mw (after (partial check-and-throw schema)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Public
@@ -34,7 +39,9 @@
 (re-frame/register-handler
  :initialize-db
  re-frame/debug
- (fn [] app-db))
+ (fn []
+   (s/validate db/schema db/app-db)
+   db/app-db))
 
 (s/defn dark-jedis-request :- s/Str
   [id :- s/Int]
@@ -77,15 +84,14 @@
 
 (re-frame/register-handler
  :update-siths
- re-frame/debug
+ standard-middleware
  (fn [db [_ sith]]
    (let [siths (:siths db)
          location (find-location siths sith)
          buttons (:buttons db)]
      (-> db
          (assoc :siths (assoc-sith siths location sith))
-         (dissoc-in [:requests (:direction sith)])
-         ))))
+         (assoc-in [:requests (:direction sith)] nil)))))
 
 (s/defn handle-set-sith
   [db [_
@@ -107,7 +113,7 @@
 
 (re-frame/register-handler
  :set-sith
- re-frame/debug
+ standard-middleware
  handle-set-sith)
 
 (s/defn cancel-request
@@ -164,7 +170,7 @@
 
 (re-frame/register-handler
  :button-click
- re-frame/debug
+ standard-middleware
  handle-button-click)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; websocket handler
@@ -175,6 +181,6 @@
 
 (re-frame/register-handler
  :ws-message
- [re-frame/debug
+ [standard-middleware
   (re-frame/path :planet)]
  handle-ws-message)

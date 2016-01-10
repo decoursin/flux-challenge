@@ -41,31 +41,19 @@
       :display-name "sith-component"
 
       :reagent-render
-      (fn [{:keys [name homeworld] :as sith}]
+      (fn [{:keys [name homeworld obi-wan-is-here] :as sith}]
         (println "reagent-render: " sith)
         [:li.css-slot
-         ^{:key sith}
          (when (not (empty? name))
-           [:div 
-            [:h3 name]
-            [:h6 (str "Homeworld: " (:name homeworld))]])])})))
+           [:div
+            [:h3 (when obi-wan-is-here {:style {:color "red"}})
+             name]
+            [:h6 (when obi-wan-is-here {:style {:color "red"}})
+             (str "Homeworld: " (:name homeworld))]])])})))
               ;; [:h6 (str "Homeworld: " (:name homeworld))]])])})]))
 
-;; (defn world-component [{:keys [id name]}]
-;;   (println "world component")
-;;   ;; (reagent/create-class
-;;   ;;  {:component-did-update
-;;   ;;   (fn [this]
-;;   ;;     (println "world component-did-update")
-;;   ;;     (let [world (reagent/props this)]
-;;   ;;       (println "world: " world)
-;;   ;;       (re-frame/dispatch [:obi-changed-planet wolr]))
-;;       ;; )})
-;;   [:div.]
-;;   )
 
 (defn main []
-  (re-frame/dispatch [:set-sith 3616 :up 0])
   (let [disable-up-button (re-frame/subscribe [:disable-up-button?])
         disable-down-button (re-frame/subscribe [:disable-down-button?])
         siths (re-frame/subscribe [:siths])

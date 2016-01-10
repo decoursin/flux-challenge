@@ -31,13 +31,16 @@
       (recur))))
 
 (defn mount-root []
+  (println "mount-root")
+  (re-frame/dispatch [:set-sith 3616 :up 0])
   (reagent/render [views/main]
                   (.getElementById js/document "app")))
 
 (defn ^:export init [] 
-  (println "hi there")
+  (println "init")
   (re-frame/dispatch-sync [:initialize-db])
   (mount-root)
   (connect-to-websocket))
 
 (init)
+

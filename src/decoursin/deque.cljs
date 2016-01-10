@@ -1,6 +1,8 @@
 (ns decoursin.deque
   (:require [schema.core :as s]))
 
+(declare deque)
+
 ;; TODO: rename top/front and back/bottom
 (defprotocol IDeque
   (-push-front [this a] "push a onto the front")
@@ -22,25 +24,30 @@
   [a]
   (reset! default a))
 
-(defn deque
-  [v]
-  (let [v (if (vector? v)
-            v
-            (into [] v))]
+(defn new-deque
+  ([]
+   (deque []))
+  ([x-or-coll]
+   (if (vector? x-or-coll)
+     (deque x-or-coll)
+     (deque (into [] x-or-coll)))))
+
+;; TODO: primatic-schema this
+(s/defn deque [v]
     (specify v
              IDeque
              (-push-front [this x]
                (println "-push-front")
-               (deque (into [x] this)))
+               (new-deque (into [x] this)))
              (-push-back [this x]
                (println "-push-back")
-               (deque (into [] (conj this x))))
+               (new-deque (into [] (conj this x))))
              (-pop-front [this]
                (println "-pop-front")
-               (deque (into [] (drop 1 this))))
+               (new-deque (into [] (drop 1 this))))
              (-pop-back [this]
                (println "-pop-back")
-               (deque (into [] (drop-last 1 this))))
+               (new-deque (into [] (drop-last 1 this))))
              (push-down [this]
                (println "push-down")
                (assert (= 5 (count this)) (str "count is not 5: " this))
@@ -57,7 +64,7 @@
              (assoc-sith [this k value]
                (println "assoc-sith: " k value)
                (if (and (<= k 4) (>= k 0))
-                 (deque (into [] (assoc v k value)))
+                 (new-deque (into [] (assoc v k value)))
                  this))
              (empty-at-location? [this location]
                (println "empty at location?: " location)
@@ -72,7 +79,7 @@
                    false)))
              (set-direction [this direction]
                (println "set-direction: " direction)
-               (deque (mapv #(assoc % :direction direction) this)))
+               (new-deque (mapv #(assoc % :direction direction) this)))
              (is-empty? [this]
                (and
                 (empty-at-location? this 0)
@@ -86,4 +93,4 @@
                             (reverse this)
                             this)]
                  (first (keep-indexed (fn [i m] (when (not-empty (:name m)) [m i])) coll))))
-             )))
+             ))
