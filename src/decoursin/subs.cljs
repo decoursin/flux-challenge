@@ -13,9 +13,11 @@
    (reaction
     (let [siths (:siths @db)
           planet (:name (:planet @db))]
+      (println "sub :siths")
       (into (new-deque)
             (map (fn [sith]
-                   (if (= planet (get-in sith [:homeworld :name]))
+                   (if (and (not (empty? planet))
+                            (= planet (get-in sith [:homeworld :name])))
                      (assoc sith :obi-wan-is-here true)
                      sith)))
             siths)))))
@@ -23,25 +25,23 @@
 (re-frame/register-sub
  :planet
  (fn [db [_]]
+   (println "sub :planet")
    (reaction (:planet @db))))
 
-(defn is-a-sith
+(defn- is-a-sith?
   "if the sith's :name is not the empty string,
    then s/he is a sith"
   [sith]
-  (when-not (empty? (:name sith))
-    sith))
+  (not (empty? (:name sith))))
 
-(defn has-no-apprentice [sith]
-  (when (nil? (get-in sith [:apprentice :id]))
-    sith))
+(defn- has-no-apprentice? [sith]
+  (nil? (get-in sith [:apprentice :id])))
 
-(defn has-no-master [sith]
-  (when (nil? (get-in sith [:master :id]))
-    sith))
+(defn- has-no-master? [sith]
+  (nil? (get-in sith [:master :id])))
 
-(def sith-without-an-apprentice (comp (keep is-a-sith) (keep has-no-apprentice)))
-(def sith-without-a-master (comp (keep is-a-sith) (keep has-no-master)))
+(def sith-without-apprentice? (fn [sith] (and (is-a-sith? sith) (has-no-apprentice? sith))))
+(def sith-without-master? (fn [sith] (and (is-a-sith? sith) (has-no-master? sith))))
 
 (re-frame/register-sub
  :disable-up-button?
@@ -49,8 +49,8 @@
    (let [siths (re-frame/subscribe [:siths])]
      (s/validate [db/Sith] @siths)
      (reaction
-      (println "disable-up-button?")
-      (if (or (not (empty? (sequence sith-without-an-apprentice @siths)))
+      (println "sub :disable-up-button?")
+      (if (or (some sith-without-apprentice? @siths)
               (some :obi-wan-is-here @siths))
         true
         false)))))
@@ -60,11 +60,9 @@
  (fn [db [_]]
    (let [siths (re-frame/subscribe [:siths])]
      (reaction
-      (println "disable-down-button?: " @siths)
-       ;; some will work?
-       ;; or if siths is empty
-       ;; siths is no longer a deque?
-      (if (or (not (empty? (sequence sith-without-a-master @siths)))
+      (println "sub :disable-down-button?")
+       ;; TODO: validate that sith is still a deque
+      (if (or (some sith-without-master? @siths)
               (some :obi-wan-is-here @siths))
         true
         false)))))

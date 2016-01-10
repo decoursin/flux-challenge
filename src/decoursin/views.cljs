@@ -11,15 +11,13 @@
 (defn sith-component [sith location]
   (let [this (reagent/current-component)]
     (reagent/create-class
-     {:component-did-mount #(println "COMPONENT DID MOUNT")
-        ;; component-should-update *only for performance* they say
-      ;; :component-will-update
+     {:display-name "sith-component"
       :component-did-update
       (fn [this]
-        (println "COMPONENT DID UPDATE: " sith)
+        (println "component-did-update")
         (let [sith (reagent/props this)
               direction (:direction sith)
-              [id location] (cond ;; id is either from the apprentice or master
+              [id location] (cond ;; id is either the apprentice or master, depends on direction
                               (and (= :up direction) (<= location 4)) 
                               [(get-in sith [:apprentice :id])
                                (+  1 location)]
@@ -27,22 +25,11 @@
                               (and (= :down direction) (>= location 0))
                               [(get-in sith [:master :id])
                                (+  -1 location)])]
-          (println "direction: " direction)
-          (println "location: " location)
-          (println "id: " id)
           (when id
             (re-frame/dispatch [:set-sith id direction location]))))
-
-      :component-will-receive-props
-      (fn [this new-props]
-        (println "COMPONENT WILL RECEIVE PROPS: " new-props)
-        true)
-
-      :display-name "sith-component"
-
       :reagent-render
       (fn [{:keys [name homeworld obi-wan-is-here] :as sith}]
-        (println "reagent-render: " sith)
+        (println "reagent-render")
         [:li.css-slot
          (when (not (empty? name))
            [:div
@@ -50,8 +37,6 @@
              name]
             [:h6 (when obi-wan-is-here {:style {:color "red"}})
              (str "Homeworld: " (:name homeworld))]])])})))
-              ;; [:h6 (str "Homeworld: " (:name homeworld))]])])})]))
-
 
 (defn main []
   (let [disable-up-button (re-frame/subscribe [:disable-up-button?])
@@ -62,7 +47,7 @@
         fourth #(nth % 3)
         fifth #(nth % 4)] 
     (fn []
-      (println "rendering main: ")
+      (println "rendering main")
       [:div.css-root
        [:h1.css-planet-monitor "Obi-Wan currently on " (:name @planet)]
        [:section.css-scrollable-list

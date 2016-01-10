@@ -12,11 +12,11 @@
   (push-up [this] "push the deque up, removing top, adding default to the bottom")
   (push-down [this] "push the deque down, removing bottom, adding default to top"))
 (defprotocol ISith
-  (assoc-sith [this k v])
+  (assoc-sith [this k sith] "just assoc, with key validation")
   (empty-at-location? [this location] "test whether or not there's a sith at location")
-  (set-direction [this direction] "set the :direction entry for each sith in v")
+  (set-direction [this direction] "set the :direction entry for each sith")
   (is-empty? [this] "true if all 5 elements are empty")
-  (get-first-non-empty-sith [this direction] "first sith from bottom or top, depending on direction"))
+  (get-first-non-empty-sith [this direction] "first non-empty sith from bottom or top, depending on direction"))
 
 (def default (atom))
 
@@ -37,50 +37,50 @@
     (specify v
              IDeque
              (-push-front [this x]
-               (println "-push-front")
+               (println "deque -push-front")
                (new-deque (into [x] this)))
              (-push-back [this x]
-               (println "-push-back")
+               (println "deque -push-back")
                (new-deque (into [] (conj this x))))
              (-pop-front [this]
-               (println "-pop-front")
+               (println "deque -pop-front")
                (new-deque (into [] (drop 1 this))))
              (-pop-back [this]
-               (println "-pop-back")
+               (println "deque -pop-back")
                (new-deque (into [] (drop-last 1 this))))
              (push-down [this]
-               (println "push-down")
+               (println "deque push-down")
                (assert (= 5 (count this)) (str "count is not 5: " this))
                (-> this
                    (-pop-back)
                    (-push-front @default)))
              (push-up [this]
-               (println "push-up")
+               (println "deque push-up")
                (assert (= 5 (count this)) (str "count is not 5: " this))
                (-> this
                    (-pop-front)
                    (-push-back @default)))
              ISith
-             (assoc-sith [this k value]
-               (println "assoc-sith: " k value)
+             (assoc-sith [this k sith]
+               (println "deque assoc-sith: " k sith)
                (if (and (<= k 4) (>= k 0))
-                 (new-deque (into [] (assoc v k value)))
+                 (new-deque (into [] (assoc v k sith)))
                  this))
              (empty-at-location? [this location]
-               (println "empty at location?: " location)
-               (println "name at this location? " (get-in this [location :name]))
-               ;; location should be 0 <= location <= 4
+               (println "deque empty at location?: " location)
+               ;; (println "name at this location? " (get-in this [location :name]))
                (if (and (>= location 0) (<= location 4))
                  (do
-                   (println "true or false: " (empty? (get-in this [location :name])))
+                   ;; (println "true or false: " (empty? (get-in this [location :name])))
                    (empty? (get-in this [location :name])))
                  (do
-                   (println "true or false: " false)
+                   ;; (println "true or false: " false)
                    false)))
              (set-direction [this direction]
-               (println "set-direction: " direction)
+               (println "deque set-direction | direction: " direction)
                (new-deque (mapv #(assoc % :direction direction) this)))
              (is-empty? [this]
+               (println "deque is-empty?")
                (and
                 (empty-at-location? this 0)
                 (empty-at-location? this 1)
@@ -88,7 +88,7 @@
                 (empty-at-location? this 3)
                 (empty-at-location? this 4)))
              (get-first-non-empty-sith [this direction]
-               (println "get-first-non-empty-sith, direction: " direction)
+               (println "deque get-first-non-empty-sith, direction: " direction)
                (let [coll (if (= :down direction)
                             (reverse this)
                             this)]

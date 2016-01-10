@@ -14,7 +14,7 @@
 
 (def ^:const port 3000)
 
-;;;;;;;;;;;;;;;;;;;;;;;;; Middleware
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Middleware
 
 (defn check-and-throw
   "throw an exception if db doesn't match the schema."
@@ -30,11 +30,7 @@
 (def standard-middleware (when ^boolean goog.DEBUG
                             (comp re-frame/debug check-schema-mw)))
 
-;; ;; after an event handler has run, this middleware can check that
-;; ;; it the value in app-db still correctly matches the schema.
-
-
-;;;;;;;;;;;;;;;;;;;;;;;; Public
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Public
 
 (re-frame/register-handler
  :initialize-db
@@ -43,22 +39,7 @@
    (s/validate db/schema db/app-db)
    db/app-db))
 
-(s/defn dark-jedis-request :- s/Str
-  [id :- s/Int]
-  (let [url (str "http://localhost:" port "/dark-jedis/")]
-    (println url)
-    (if (nil? id)
-      url
-      (str url id))))
-
-(s/defn load-sith [id :- s/Int]
-  (println "load-sith id: " id)
-  (let [cancel (chan 5)]
-    [cancel
-     (go (let [sith (:body (<! (client/get (dark-jedis-request id) {:accepts :json
-                                                                    :with-credentials? false
-                                                                    :cancel cancel})))]
-           sith))]))
+;;;;;;;;;;;;;;;;;;;;;;;; update siths handler
 
 (s/defn current-sith-position :- s/Int
   [siths id]
@@ -86,12 +67,32 @@
  :update-siths
  standard-middleware
  (fn [db [_ sith]]
+   (println "handler :update-siths")
    (let [siths (:siths db)
          location (find-location siths sith)
          buttons (:buttons db)]
      (-> db
          (assoc :siths (assoc-sith siths location sith))
          (assoc-in [:requests (:direction sith)] nil)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;; set-sith handler
+
+(s/defn dark-jedis-request :- s/Str
+  [id :- s/Int]
+  (let [url (str "http://localhost:" port "/dark-jedis/")]
+    (println url)
+    (if (nil? id)
+      url
+      (str url id))))
+
+(s/defn load-sith [id :- s/Int]
+  (println "load-sith | id: " id)
+  (let [cancel (chan 5)]
+    [cancel
+     (go (let [sith (:body (<! (client/get (dark-jedis-request id) {:accepts :json
+                                                                    :with-credentials? false
+                                                                    :cancel cancel})))]
+           sith))]))
 
 (s/defn handle-set-sith
   [db [_
@@ -116,11 +117,14 @@
  standard-middleware
  handle-set-sith)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;; buttons clicks handler
+
 (s/defn cancel-request
   [request]
-  (println "cancel-request: " request)
+  (println "cancel-request | request: " request)
   (println "abort response? " (http/abort! request)))
 
+;; TODO: make this better use top/bottom instead.
 (defn opposite-direction
   [direction]
   (case direction
@@ -149,7 +153,7 @@
          request)))))
 
 (defn shift [siths direction]
-  (println "shifting... " direction)
+  (println "shift | direction: " direction)
   (if (= direction :up)
     (push-up siths)
     (push-down siths)))
@@ -159,7 +163,7 @@
           direction
           e]]
   (js/console.log e)
-  (println "direction: " direction)
+  (println "handler :handle-button-click | direction: " direction)
   (let [siths (-> (:siths db)
                   (shift direction)
                   (set-direction direction))
@@ -177,6 +181,7 @@
 
 (s/defn handle-ws-message
   [old-planet [_ new-planet]]
+  (println "handler :handle-ws-message | new-planet: " new-planet)
   (clojure.walk/keywordize-keys new-planet))
 
 (re-frame/register-handler
