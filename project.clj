@@ -10,15 +10,15 @@
 
   :min-lein-version "2.5.3"
 
-  :test-paths ["test"]
+  :source-paths ["src"]
 
   :plugins [[lein-cljsbuild "1.1.1"]]
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
 
   :cljsbuild {:builds [{:id "dev"
-                        :source-paths ["src" "dev"]
-                        :compiler {:main decoursin.dev
+                        :source-paths ["src"]
+                        :compiler {:main decoursin.core
                                    :optimizations :none
                                    :output-to "resources/public/js/compiled/decoursin.js"
                                    :output-dir "resources/public/js/compiled/out"
@@ -28,11 +28,10 @@
                                    :source-map-timestamp true}}
 
                        {:id "min"
-                        :source-paths ["src" "dev"]
+                        :source-paths ["src"]
                         :compiler {:main decoursin.core
-                                   :output-to "resources/public/js/compiled/decoursin.js"
+                                   :output-to "resources/public/js/compiled/app.js"
                                    :optimizations :advanced
-                                   :closure-defines {goog.DEBUG false}
                                    :pretty-print false}}]}
   :figwheel {;; :http-server-root "public" ;; default and assumes "resources"
              :server-port 3449
@@ -40,9 +39,9 @@
 
              :css-dirs ["resources/public/css"] ;; watch and update CSS
 
-             :repl true
+             ;; :repl true
 
-             :on-jsload "decoursin.core/mount-root"
+             ;; :on-jsload "decoursin.core/mount-root"
 
              ;; Start an nREPL server into the running figwheel process
              ;; :nrepl-port 7888

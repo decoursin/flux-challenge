@@ -82,6 +82,7 @@ var wss = new WebSocketServer({ server: wsHttpServer })
 var timeout;
 
 wss.on('connection', function connection(ws) {
+  console.log("CONNECTION");
   ws.on('message', function incoming(message) {
     console.log('WebSocketServer received: %s', message);
     sendRandomWorld();
@@ -89,11 +90,14 @@ wss.on('connection', function connection(ws) {
 
   function sendRandomWorld() {
     var world = worlds[Math.floor(Math.random()*worlds.length)];
+    console.log("sendRamdonWorld: ", world);
     ws.send(JSON.stringify(world));
   }
 
   function resetTimeout() {
+    console.log("resetTimeout");
     if (typeof timeout !== 'undefined') {
+      console.log("clearing timeout");
       clearTimeout(timeout);
     }
     var delay = Math.floor(Math.random() * 5000) + 500;

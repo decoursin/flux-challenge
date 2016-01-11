@@ -2,6 +2,7 @@
 /target
 /*-init.clj
 /resources/public/js/compiled
+/server/node_modules/
 out
 /main.js
 /.lein-failures
