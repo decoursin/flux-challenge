@@ -39,7 +39,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;; update siths handler
 
 (s/defn current-sith-position :- s/Int
-  [siths id]
+  [siths id direction]
   "Used to find where the sith having id=id is located
    in the siths."
   (cond
@@ -48,19 +48,23 @@
     (= id (get-in siths [2 :id])) 2
     (= id (get-in siths [3 :id])) 3
     (= id (get-in siths [4 :id])) 4
-    (is-empty? siths) -1
+    (and (= :up direction) (is-empty? siths)) -1
+    (and (= :down direction)   (is-empty? siths))  5
     :else -9999))
 
 (s/defn find-location :- s/Int
   "Returns the location in the siths
    where the sith should be placed [0-4],
    determined by where it's apprentice
-   exclusive or master is located"
+   exclusive or master is located. If neither
+   apprentice nor master is in the siths, then
+   place at the top or bottom depending on direction"
   [siths sith]
   (println "find-location")
-  (if (= :up (:direction sith))
-    (+  1 (current-sith-position siths (get-in sith [:master :id])))
-    (+ -1 (current-sith-position siths (get-in sith [:apprentice :id])))))
+  (let [direction (:direction sith)]
+    (if (= :up direction)
+      (+  1 (current-sith-position siths (get-in sith [:master :id]) direction))
+      (+ -1 (current-sith-position siths (get-in sith [:apprentice :id]) direction)))))
 
 (re-frame/register-handler
  :update-siths
