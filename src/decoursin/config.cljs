@@ -5,6 +5,6 @@
   ^boolean js/goog.DEBUG)
 
 (when debug?
+  (s/set-fn-validation! true)
   (enable-console-print!))
 
-(s/set-fn-validation! true)
