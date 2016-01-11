@@ -30,9 +30,9 @@
 
 (defn ^:export init [] 
   (println "init")
+  (connect-to-websocket)
   (re-frame/dispatch-sync [:initialize-db])
-  (mount-root)
-  (connect-to-websocket))
+  (mount-root))
 
 (init)
 
