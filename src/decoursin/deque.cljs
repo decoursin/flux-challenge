@@ -17,7 +17,7 @@
   (is-empty? [this] "true if all 5 elements are empty")
   (get-first-non-empty-sith [this direction] "first non-empty sith from bottom or top, depending on direction"))
 
-(def default (atom))
+(def ^:private default (atom))
 
 (defn set-default-in-deque!
   [a]

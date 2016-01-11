@@ -2,7 +2,8 @@
   (:require [reagent.core :as reagent]
             [schema.core :as s]
             [cljs.core.async.impl.channels :refer [ManyToManyChannel]]
-            [decoursin.deque :refer [new-deque set-default-in-deque!]]))
+            [decoursin.deque :refer [new-deque set-default-in-deque!
+                                     IDeque ISith]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; Schemas
 
@@ -16,7 +17,7 @@
            :master {:url (s/maybe s/Str) :id (s/maybe s/Num)}
            :apprentice {:url (s/maybe s/Str) :id (s/maybe s/Num)}})
 
-(def schema {:siths [Sith]
+(def schema {:siths (s/conditional #(implements? IDeque %) [Sith])
              :requests {:up {:id (s/maybe s/Num)
                              :channel (s/maybe ManyToManyChannel)}
                         :down {:id (s/maybe s/Num)
@@ -34,12 +35,14 @@
    :master {:url "", :id -1}
    :apprentice {:url "", :id -1}})
 
-(def v (into [] (repeat 5 (empty-sith-template))))
+(def ^:private v (into [] (repeat 5 (empty-sith-template))))
 (set-default-in-deque! (empty-sith-template))
-(def siths (new-deque v))
+(def ^:private siths (new-deque v))
 
 (def app-db
   {:siths siths
+   ;; requests or better name "pending-requests" since *only* pending requests
+   ;; are found here.
    :requests {:up {:id -1 :channel nil}, :down {:id -1 :channel nil}}
    :planet {:id -1, :name ""}})
 

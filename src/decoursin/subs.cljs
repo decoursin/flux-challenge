@@ -43,8 +43,8 @@
   [sith]
   (nil? (get-in sith [:master :id])))
 
-(def sith-without-apprentice? (fn [sith] (and (is-a-sith? sith) (has-no-apprentice? sith))))
-(def sith-without-master? (fn [sith] (and (is-a-sith? sith) (has-no-master? sith))))
+(def ^:private sith-without-apprentice? (fn [sith] (and (is-a-sith? sith) (has-no-apprentice? sith))))
+(def ^:private sith-without-master? (fn [sith] (and (is-a-sith? sith) (has-no-master? sith))))
 
 (re-frame/register-sub
  :disable-up-button?

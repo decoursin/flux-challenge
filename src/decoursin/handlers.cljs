@@ -13,7 +13,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Middleware
 
-(defn check-and-throw
+(defn- check-and-throw
   "throw an exception if db doesn't match the schema."
   [a-schema db]
   (if-let [problems  (s/check a-schema db)]
@@ -22,9 +22,9 @@
       (println "the-schema: " a-schema)
       (throw (js/Error. (str "schema check failed: " problems))))))
 
-(def check-schema-mw (re-frame/after (partial check-and-throw db/schema)))
+(def ^:private check-schema-mw (re-frame/after (partial check-and-throw db/schema)))
 
-(def standard-middleware (when ^boolean goog.DEBUG
+(def ^:private standard-middleware (when ^boolean goog.DEBUG
                             (comp re-frame/debug check-schema-mw)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Public
@@ -79,6 +79,7 @@
          buttons (:buttons db)]
      (-> db
          (assoc :siths (assoc-sith siths location sith))
+         ;; remove sith from pending-requests, since it finished fetching.
          (assoc-in [:requests (:direction sith)] {:id -1 :channel nil})))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; update pending request
