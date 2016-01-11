@@ -17,7 +17,9 @@
            :master {:url (s/maybe s/Str) :id (s/maybe s/Num)}
            :apprentice {:url (s/maybe s/Str) :id (s/maybe s/Num)}})
 
-(def schema {:siths (s/conditional #(implements? IDeque %) [Sith])
+(def Siths (s/conditional #(implements? IDeque %) [Sith]))
+
+(def schema {:siths Siths
              :requests {:up {:id (s/maybe s/Num)
                              :channel (s/maybe ManyToManyChannel)}
                         :down {:id (s/maybe s/Num)

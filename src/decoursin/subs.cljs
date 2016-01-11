@@ -63,7 +63,6 @@
    (let [siths (re-frame/subscribe [:siths])]
      (reaction
       (println "sub :disable-down-button?")
-       ;; TODO: validate that sith is still a deque
       (if (or (some sith-without-master? @siths)
               (some :obi-wan-is-here @siths))
         true

@@ -1,8 +1,9 @@
 (ns decoursin.handlers
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs.core.async :refer [<! chan close!]]
+            [cljs.core.async.impl.channels :refer [ManyToManyChannel]]
             [cljs-http.client :as client]
-            [decoursin.db :as db :refer [Direction]]
+            [decoursin.db :as db]
             [decoursin.deque :refer [get-first-non-empty-sith is-empty?
                                     set-direction empty-at-location?
                                      assoc-sith push-down push-up]]
@@ -88,7 +89,6 @@
  :update-pending-requests
  [standard-middleware
   (re-frame/path :requests)]
- ;; TODO prismatic schema
  (fn [requests [_ cancel-chan direction id]]
    "We're pending a request from the server for a sith with this id,
     add it to pending"
@@ -97,7 +97,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;; set-sith handler
 
-(s/defn fetch-sith
+(s/defn fetch-sith :- [(s/one ManyToManyChannel "ch1") (s/one ManyToManyChannel "ch2")]
   "Fetch the sith from the server."
   [id :- s/Int]
   (println "fetch-sith | id: " id)
@@ -109,17 +109,14 @@
                                    :cancel cancel-chan})]
     [cancel-chan sith-chan]))
 
-(s/defn handle-set-sith
+(s/defn handle-set-sith :- db/schema
   "In Re-frame, to change the db after asynchronous waiting,
    we must dispatch to a different handler to make the change;
    for this reason, in the when clause below, we dispatch
    to :update-siths and :update-pending-requests handlers. The
    :update-pending-requests dispatch must occur before we resolve
    the sith-channel using <!"
-  [db [_
-          id ;; For some reason, typing this results that direction is nil???
-          direction; :- Direction
-          location]]
+  [db [_ id direction location]]
   (s/validate (s/maybe s/Int) id)
   (println ":handle-set-sith")
   (let [siths (:siths db)
@@ -143,19 +140,18 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; buttons clicks handler
 
-(s/defn cancel-request!
+(s/defn cancel-request! :- s/Any
   "closing the cancel channel, cancels
    the sith-chan. Search cljs-http issues for more"
-  [channel]
+  [channel :- ManyToManyChannel]
   (println "cancelling request")
   (close! channel))
 
-;; TODO: make this better use top/bottom instead.
-(s/defn opposite-direction
+(s/defn opposite-direction :- s/Keyword
   "This is terrible haha and a hack of sorts. The problem is that
    we cancel the pending requests when scrolling in the opposite
    that they were loaded from"
-  [direction]
+  [direction :- db/Direction]
   (case direction
     :up :down
     :down :up
@@ -166,7 +162,7 @@
    that a sith would be placed on the deque is no longer available
    due to scrolling while the sith is being fetched from the server. In
    this case, the sith's position, after scroll, is <0 or >4"
-  [requests siths direction]
+  [requests siths :- db/Siths direction :- db/Direction]
   (println "cancel-obsolete-pending-request")
   (let [pending-request-chan (:channel (get requests (opposite-direction direction)))
         [first-sith location] (get-first-non-empty-sith siths direction)
@@ -179,22 +175,20 @@
         (assoc requests (opposite-direction direction) {:id -1, :channel nil}))
       requests)))
 
-(s/defn shift
+(s/defn shift :- db/Siths
   "Shift the deque up or down depending on direction. The result is
    that we remove from one side, and we add the default empty-sith-template
    to the other"
-  [siths direction]
+  [siths :- db/Siths direction :- db/Direction]
   (println "shift | direction: " direction)
   (if (= direction :up)
     (push-up (push-up siths))
     (push-down (push-down siths))))
 
-(s/defn handle-button-click
+(s/defn handle-button-click :- db/schema
   "Shift the deque up or down, depending on direction, and possibly
    cancel the only pending request in that direction"
-  [db [_
-          direction
-          e]]
+  [db [_ direction e]]
   (js/console.log e)
   (println ":handle-button-click | direction: " direction)
   (let [siths (-> (:siths db)
