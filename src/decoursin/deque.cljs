@@ -12,8 +12,10 @@
   (push-down [this] "push the deque down, removing bottom, adding default to top"))
 (defprotocol ISith
   (assoc-sith [this k sith] "just assoc, with key validation")
-  (empty-at-location? [this location] "test whether or not there's a sith at location")
+  (in? [this id] "is the sith of this id in this deque? returns boolean")
   (set-direction [this direction] "set the :direction entry for each sith")
+  (empty-at-location? [this location] "test whether or not there's a sith at location")
+  (count-blanks [this direction] "count how many blanks templates are from the top/bottom")
   (is-empty? [this] "true if all 5 elements are empty")
   (get-first-non-empty-sith [this direction] "first non-empty sith from bottom or top, depending on direction"))
 
@@ -65,13 +67,18 @@
                (if (and (<= k 4) (>= k 0))
                  (new-deque (into [] (assoc v k sith)))
                  this))
+             (in? [this id]
+               (println "in?")
+               (boolean (some #(= (:id %) id) this)))
              (empty-at-location? [this location]
                (println "deque empty at location?: " location)
-               (if (and (>= location 0) (<= location 4))
-                 (do
-                   (empty? (get-in this [location :name])))
-                 (do
-                   false)))
+               (when (and (>= location 0) (<= location 4))
+                 (empty? (get-in this [location :name]))))
+             (count-blanks [this direction]
+               (let [v (if (= :down direction)
+                         (reverse this)
+                         this)]
+                 (count (take-while #(empty? (:name %)) v))))
              (set-direction [this direction]
                (println "deque set-direction | direction: " direction)
                (new-deque (mapv #(assoc % :direction direction) this)))

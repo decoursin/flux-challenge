@@ -8,16 +8,7 @@
 (re-frame/register-sub
  :siths
  (fn [db [_]]
-   (reaction
-    (println "sub :siths")
-    (let [siths (:siths @db)
-          planet (:name (:planet @db))]
-      (into (new-deque)
-            (map (fn [sith]
-                   (if (and (seq planet) (= planet (get-in sith [:homeworld :name])))
-                     (assoc sith :obi-wan-is-here true)
-                     sith)))
-            siths)))))
+   (reaction (:siths @db))))
 
 (re-frame/register-sub
  :planet
@@ -49,21 +40,21 @@
 (re-frame/register-sub
  :disable-up-button?
  (fn [db [_]]
-   (let [siths (re-frame/subscribe [:siths])]
-     (reaction
+   (reaction
+    (let [siths (:siths @db)]
       (println "sub :disable-up-button?")
-      (if (or (some sith-without-apprentice? @siths)
-              (some :obi-wan-is-here @siths))
+      (if (or (some sith-without-apprentice? siths)
+              (some :obi-wan-is-here siths))
         true
         false)))))
 
 (re-frame/register-sub
  :disable-down-button?
  (fn [db [_]]
-   (let [siths (re-frame/subscribe [:siths])]
-     (reaction
+   (reaction
+    (let [siths (:siths @db)]
       (println "sub :disable-down-button?")
-      (if (or (some sith-without-master? @siths)
-              (some :obi-wan-is-here @siths))
+      (if (or (some sith-without-master? siths)
+              (some :obi-wan-is-here siths))
         true
         false)))))

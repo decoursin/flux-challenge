@@ -28,7 +28,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Public
 
-(s/defn empty-sith-template []
+(s/defn blank-sith-template []
   {:id -1
    :direction nil
    :name ""
@@ -36,16 +36,18 @@
    :homeworld {:name "", :id -1}
    :master {:url "", :id -1}
    :apprentice {:url "", :id -1}})
+(s/defn blank-requests-map []
+  {:up {:id -1 :channel nil}, :down {:id -1 :channel nil}})
 
-(def ^:private v (into [] (repeat 5 (empty-sith-template))))
-(set-default-in-deque! (empty-sith-template))
+(def ^:private v (into [] (repeat 5 (blank-sith-template))))
+(set-default-in-deque! (blank-sith-template))
 (def ^:private siths (new-deque v))
 
 (def app-db
   {:siths siths
    ;; requests or better name "pending-requests" since *only* pending requests
    ;; are found here.
-   :requests {:up {:id -1 :channel nil}, :down {:id -1 :channel nil}}
+   :requests (blank-requests-map)
    :planet {:id -1, :name ""}})
 
 (s/validate schema app-db)

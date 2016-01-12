@@ -4,8 +4,8 @@
             [cljs.core.async.impl.channels :refer [ManyToManyChannel]]
             [cljs-http.client :as client]
             [decoursin.db :as db]
-            [decoursin.deque :refer [get-first-non-empty-sith is-empty?
-                                    set-direction empty-at-location?
+            [decoursin.deque :refer [in? new-deque get-first-non-empty-sith
+                                     count-blanks is-empty? set-direction
                                      assoc-sith push-down push-up]]
             [re-frame.core :as re-frame]
             [schema.core :as s]))
@@ -33,9 +33,7 @@
 (re-frame/register-handler
  :initialize-db
  re-frame/debug
- (fn []
-   (s/validate db/schema db/app-db)
-   db/app-db))
+ (fn [] db/app-db))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; update siths handler
 
@@ -77,7 +75,10 @@
    (println ":handle-update-siths")
    (let [siths (:siths db)
          location (find-location siths sith)
-         buttons (:buttons db)]
+         buttons (:buttons db)
+         sith (if (= (-> db :planet :name) (get-in sith [:homeworld :name]))
+                (assoc sith :obi-wan-is-here true)
+                sith)]
      (-> db
          (assoc :siths (assoc-sith siths location sith))
          ;; remove sith from pending-requests, since it finished fetching.
@@ -122,8 +123,9 @@
   (let [siths (:siths db)
         pending (get (:requests db) direction)] 
     (when (and (pos? id) ;; valid sith?
-             (empty-at-location? siths location) ;; is the sith  already in there?
-             (not= id (:id pending))) ;; waiting for a response for this sith?
+             (not (in? siths id)) ;; is the sith already in there
+             (not= id (:id pending)) ;; waiting for a response for this sith?
+             (not-any? :obi-wan-is-here siths))
       ;; when, do
       (let [[cancel-chan sith-chan] (fetch-sith id)]
         (re-frame/dispatch [:update-pending-requests cancel-chan direction id])
@@ -157,27 +159,24 @@
     :down :up
     nil))
 
-(s/defn cancel-obsolete-pending-request
+(s/defn cancel-obsolete-pending-request!
   "A pending request is obsolete, after scroll, only when the position
    that a sith would be placed on the deque is no longer available
    due to scrolling while the sith is being fetched from the server. In
    this case, the sith's position, after scroll, is <0 or >4"
   [requests siths :- db/Siths direction :- db/Direction]
-  (println "cancel-obsolete-pending-request")
-  (let [pending-request-chan (:channel (get requests (opposite-direction direction)))
-        [first-sith location] (get-first-non-empty-sith siths direction)
-        remain (if (= :up direction)
-                 location
-                 (- 4 location))]
-    (if (and pending-request-chan (>= remain location))
+  (println "cancel-obsolete-pending-request!")
+  (let [a-ch (:channel (get requests (opposite-direction direction)))
+        blanks (count-blanks siths direction)]
+    (if (and a-ch (zero? blanks))
       (do
-        (cancel-request! pending-request-chan)
+        (cancel-request! a-ch)
         (assoc requests (opposite-direction direction) {:id -1, :channel nil}))
       requests)))
 
 (s/defn shift :- db/Siths
   "Shift the deque up or down depending on direction. The result is
-   that we remove from one side, and we add the default empty-sith-template
+   that we remove from one side, and we add the default blank-sith-template
    to the other"
   [siths :- db/Siths direction :- db/Direction]
   (println "shift | direction: " direction)
@@ -189,12 +188,12 @@
   "Shift the deque up or down, depending on direction, and possibly
    cancel the only pending request in that direction"
   [db [_ direction e]]
-  (js/console.log e)
   (println ":handle-button-click | direction: " direction)
+
   (let [siths (-> (:siths db)
                   (shift direction)
                   (set-direction direction))
-        request (cancel-obsolete-pending-request (:requests db) siths direction)]
+        request (cancel-obsolete-pending-request! (:requests db) siths direction)]
     (-> db
         (assoc :siths siths)
         (assoc :requests request))))
@@ -206,13 +205,43 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; websocket handler
 
+(s/defn update-obi-wan-is-here
+  [planet :- (s/pred map?)]
+  (fn obi-wan-is-here? [sith]
+    (if (= (:name planet) (get-in sith [:homeworld :name]))
+      (assoc sith :obi-wan-is-here true)
+      (assoc sith :obi-wan-is-here false))))
+
+(s/defn cancel-all-requests! :- nil
+  [requests]
+  (println "cancel-all-requests")
+  (let [ch1 (-> requests :up :channel)
+        ch2 (-> requests :down :channel)]
+    (when ch1
+      (cancel-request! ch1))
+    (when ch2
+      (cancel-request! ch2))
+    nil))
+
 (s/defn handle-ws-message
-  "handle websocket messages, by updating the :planet field"
-  [old-planet [_ new-planet]]
-  (println ":handle-ws-message | new-planet: " new-planet)
-  (clojure.walk/keywordize-keys new-planet))
+  "handle websocket messages, by updating the :planet field
+   and updating :obi-wan-is-here field in all siths"
+  [db [_ planet]]
+  (let [planet (clojure.walk/keywordize-keys planet)]
+    (println ":handle-ws-message | planet: " planet)
+    (let [siths (new-deque
+                 (map (update-obi-wan-is-here planet)
+                      (:siths db)))
+          db (-> db
+              (assoc :siths siths)
+              (assoc :planet planet))]
+      (if (some :obi-wan-is-here siths)
+        (do
+          (cancel-all-requests! (:requests db) )
+          (assoc db :requests (db/blank-requests-map)))
+        db))))
 
 (re-frame/register-handler
  :ws-message
- (re-frame/path :planet)
+ standard-middleware
  handle-ws-message)
