@@ -70,19 +70,20 @@
  standard-middleware
  (fn [db [_ sith]]
    "We received a sith that was fetched from the server. Assoc
-    it into it's location; and remove it from the pending requests
-    because it's finished so no longer pending"
+    it into it's location; remove it from the pending requests
+    because it's finished so no longer pending or remove all pending requests
+    because :obi-wan-is-here at some siths"
    (println ":handle-update-siths")
    (let [siths (:siths db)
          location (find-location siths sith)
          buttons (:buttons db)
          sith (if (= (-> db :planet :name) (get-in sith [:homeworld :name]))
                 (assoc sith :obi-wan-is-here true)
-                sith)]
-     (-> db
-         (assoc :siths (assoc-sith siths location sith))
-         ;; remove sith from pending-requests, since it finished fetching.
-         (assoc-in [:requests (:direction sith)] {:id -1 :channel nil})))))
+                sith)
+         db (if (some :obi-wan-is-here siths)
+              (assoc db :requests db/blank-requests-map)
+              (assoc-in db [:requests (:direction sith)] {:id -1 :channel nil}))]
+     (assoc db :siths (assoc-sith siths location sith)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; update pending request
 
