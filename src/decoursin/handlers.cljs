@@ -142,7 +142,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; buttons clicks handler
 
-(s/defn cancel-request! :- s/Any
+(s/defn cancel-request! :- nil
   "closing the cancel channel, cancels
    the sith-chan. Search cljs-http issues for more"
   [channel :- ManyToManyChannel]
@@ -159,18 +159,18 @@
     :down :up
     nil))
 
-(s/defn cancel-obsolete-pending-request!
+(s/defn cancel-obsolete-pending-request! :- db/Requests
   "A pending request is obsolete, after scroll, only when the position
    that a sith would be placed on the deque is no longer available
    due to scrolling while the sith is being fetched from the server. In
    this case, the sith's position, after scroll, is <0 or >4"
-  [requests siths :- db/Siths direction :- db/Direction]
+  [requests :- db/Requests siths :- db/Siths direction :- db/Direction]
   (println "cancel-obsolete-pending-request!")
-  (let [a-ch (:channel (get requests (opposite-direction direction)))
+  (let [ch (:channel (get requests (opposite-direction direction)))
         blanks (count-blanks siths direction)]
-    (if (and a-ch (zero? blanks))
+    (if (and ch (zero? blanks))
       (do
-        (cancel-request! a-ch)
+        (cancel-request! ch)
         (assoc requests (opposite-direction direction) {:id -1, :channel nil}))
       requests)))
 
@@ -189,7 +189,6 @@
    cancel the only pending request in that direction"
   [db [_ direction e]]
   (println ":handle-button-click | direction: " direction)
-
   (let [siths (-> (:siths db)
                   (shift direction)
                   (set-direction direction))
@@ -206,40 +205,41 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; websocket handler
 
 (s/defn update-obi-wan-is-here
-  [planet :- (s/pred map?)]
+  "Take a planet, and return a function that accepts a sith.
+   Update the :obi-wan-is-here field in this sith"
+  [planet :- db/Planet]
   (fn obi-wan-is-here? [sith]
     (if (= (:name planet) (get-in sith [:homeworld :name]))
       (assoc sith :obi-wan-is-here true)
       (assoc sith :obi-wan-is-here false))))
 
 (s/defn cancel-all-requests! :- nil
-  [requests]
+  "Cancel all pending requests"
+  [requests :- db/Requests]
   (println "cancel-all-requests")
   (let [ch1 (-> requests :up :channel)
         ch2 (-> requests :down :channel)]
     (when ch1
       (cancel-request! ch1))
     (when ch2
-      (cancel-request! ch2))
-    nil))
+      (cancel-request! ch2))))
 
 (s/defn handle-ws-message
   "handle websocket messages, by updating the :planet field
-   and updating :obi-wan-is-here field in all siths"
+   and updating :obi-wan-is-here field in all siths, and
+   conditionally remove all pending requests"
   [db [_ planet]]
-  (let [planet (clojure.walk/keywordize-keys planet)]
     (println ":handle-ws-message | planet: " planet)
-    (let [siths (new-deque
+    (let [planet (clojure.walk/keywordize-keys planet)
+          siths (new-deque
                  (map (update-obi-wan-is-here planet)
-                      (:siths db)))
-          db (-> db
-              (assoc :siths siths)
-              (assoc :planet planet))]
-      (if (some :obi-wan-is-here siths)
-        (do
-          (cancel-all-requests! (:requests db) )
-          (assoc db :requests (db/blank-requests-map)))
-        db))))
+                      (:siths db)))]
+      (when (some :obi-wan-is-here siths)
+        (cancel-all-requests! (:requests db)))
+      (cond-> db
+        (some :obi-wan-is-here siths) (assoc :requests (db/blank-requests-map))
+        true (assoc :siths siths)
+        true (assoc :planet planet))))
 
 (re-frame/register-handler
  :ws-message

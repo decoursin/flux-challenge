@@ -19,12 +19,16 @@
 
 (def Siths (s/conditional #(implements? IDeque %) [Sith]))
 
+(def Planet {:id s/Num, :name s/Str})
+
+(def Requests {:up   {:id (s/maybe s/Num)
+                      :channel (s/maybe ManyToManyChannel)}
+               :down {:id (s/maybe s/Num)
+                      :channel (s/maybe ManyToManyChannel)}})
+
 (def schema {:siths Siths
-             :requests {:up {:id (s/maybe s/Num)
-                             :channel (s/maybe ManyToManyChannel)}
-                        :down {:id (s/maybe s/Num)
-                               :channel (s/maybe ManyToManyChannel)}}
-             :planet {:id s/Num, :name s/Str}})
+             :requests Requests
+             :planet Planet})
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Public
 

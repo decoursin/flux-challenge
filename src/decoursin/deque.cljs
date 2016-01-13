@@ -33,8 +33,7 @@
      (deque x-or-coll)
      (deque (into [] x-or-coll)))))
 
-;; TODO: primatic-schema this
-(s/defn deque [v]
+(s/defn deque [v :- (s/pred vector?)]
     (specify v
              IDeque
              (-push-front [this x]
