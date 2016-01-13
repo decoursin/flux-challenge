@@ -33,56 +33,54 @@
      (deque x-or-coll)
      (deque (into [] x-or-coll)))))
 
+(defn- assert-count-is-5
+  [deque]
+  (assert (= 5 (count deque)) (str "count is not 5: " deque)))
+
 (s/defn deque [v :- (s/pred vector?)]
     (specify v
              IDeque
              (-push-front [this x]
-               (println "deque -push-front")
                (new-deque (into [x] this)))
              (-push-back [this x]
-               (println "deque -push-back")
                (new-deque (into [] (conj this x))))
              (-pop-front [this]
-               (println "deque -pop-front")
                (new-deque (into [] (drop 1 this))))
              (-pop-back [this]
-               (println "deque -pop-back")
                (new-deque (into [] (drop-last 1 this))))
              (push-down [this]
-               (println "deque push-down")
-               (assert (= 5 (count this)) (str "count is not 5: " this))
                (-> this
                    (-pop-back)
                    (-push-front @default)))
              (push-up [this]
-               (println "deque push-up")
-               (assert (= 5 (count this)) (str "count is not 5: " this))
                (-> this
                    (-pop-front)
                    (-push-back @default)))
              ISith
              (assoc-sith [this k sith]
-               (println "deque assoc-sith: " k sith)
+               (assert-count-is-5 this)
                (if (and (<= k 4) (>= k 0))
                  (new-deque (into [] (assoc v k sith)))
                  this))
              (in? [this id]
-               (println "in?")
+               (assert-count-is-5 this)
                (boolean (some #(= (:id %) id) this)))
              (empty-at-location? [this location]
-               (println "deque empty at location?: " location)
+               (assert-count-is-5 this)
+               (assert (= 5 (count this)) (str "count is not 5: " this))
                (when (and (>= location 0) (<= location 4))
                  (empty? (get-in this [location :name]))))
              (count-blanks [this direction]
+               (assert-count-is-5 this)
                (let [v (if (= :down direction)
                          (reverse this)
                          this)]
                  (count (take-while #(empty? (:name %)) v))))
              (set-direction [this direction]
-               (println "deque set-direction | direction: " direction)
+               (assert-count-is-5 this)
                (new-deque (mapv #(assoc % :direction direction) this)))
              (is-empty? [this]
-               (println "deque is-empty?")
+               (assert-count-is-5 this)
                (and
                 (empty-at-location? this 0)
                 (empty-at-location? this 1)
@@ -90,9 +88,8 @@
                 (empty-at-location? this 3)
                 (empty-at-location? this 4)))
              (get-first-non-empty-sith [this direction]
-               (println "deque get-first-non-empty-sith, direction: " direction)
+               (assert-count-is-5 this)
                (let [coll (if (= :down direction)
                             (reverse this)
                             this)]
-                 (first (keep-indexed (fn [i m] (when (seq (:name m)) [m i])) coll))))
-             ))
+                 (first (keep-indexed (fn [i m] (when (seq (:name m)) [m i])) coll))))))

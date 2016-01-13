@@ -32,7 +32,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Public
 
-(s/defn blank-sith-template []
+(defn blank-sith-template []
   {:id -1
    :direction nil
    :name ""
@@ -40,12 +40,14 @@
    :homeworld {:name "", :id -1}
    :master {:url "", :id -1}
    :apprentice {:url "", :id -1}})
-(s/defn blank-requests-map []
-  {:up {:id -1 :channel nil}, :down {:id -1 :channel nil}})
+
+(set-default-in-deque! (blank-sith-template))
 
 (def ^:private v (into [] (repeat 5 (blank-sith-template))))
-(set-default-in-deque! (blank-sith-template))
 (def ^:private siths (new-deque v))
+
+(defn blank-requests-map []
+  {:up {:id -1 :channel nil}, :down {:id -1 :channel nil}})
 
 (def app-db
   {:siths siths
@@ -53,5 +55,3 @@
    ;; are found here.
    :requests (blank-requests-map)
    :planet {:id -1, :name ""}})
-
-(s/validate schema app-db)

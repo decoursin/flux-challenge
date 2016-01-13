@@ -13,7 +13,6 @@
 (re-frame/register-sub
  :planet
  (fn [db [_]]
-   (println "sub :planet")
    (reaction (:planet @db))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; disable up/down buttons
@@ -42,19 +41,13 @@
  (fn [db [_]]
    (reaction
     (let [siths (:siths @db)]
-      (println "sub :disable-up-button?")
-      (if (or (some sith-without-apprentice? siths)
-              (some :obi-wan-is-here siths))
-        true
-        false)))))
+      (boolean (or (some sith-without-apprentice? siths)
+                   (some :obi-wan-is-here siths)))))))
 
 (re-frame/register-sub
  :disable-down-button?
  (fn [db [_]]
    (reaction
     (let [siths (:siths @db)]
-      (println "sub :disable-down-button?")
-      (if (or (some sith-without-master? siths)
-              (some :obi-wan-is-here siths))
-        true
-        false)))))
+      (boolean (or (some sith-without-master? siths)
+                   (some :obi-wan-is-here siths)))))))

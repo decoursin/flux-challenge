@@ -40,26 +40,26 @@
 (s/defn current-sith-position :- s/Int
   [siths id direction]
   "Used to find where the sith having id=id is located
-   in the siths."
+   in the siths. If neither
+   apprentice nor master is in the siths, then
+   place at the top or bottom depending on direction"
   (cond
     (= id (get-in siths [0 :id])) 0
     (= id (get-in siths [1 :id])) 1
     (= id (get-in siths [2 :id])) 2
     (= id (get-in siths [3 :id])) 3
     (= id (get-in siths [4 :id])) 4
-    (and (= :up direction) (is-empty? siths)) -1
-    (and (= :down direction)   (is-empty? siths))  5
+    ;; siths is empty, place him at the top or bottom
+    (and (is-empty? siths) (= :up direction)) -1
+    (and (is-empty? siths) (= :down direction))  5
     :else -9999))
 
 (s/defn find-location :- s/Int
   "Returns the location in the siths
    where the sith should be placed [0-4],
    determined by where it's apprentice
-   exclusive or master is located. If neither
-   apprentice nor master is in the siths, then
-   place at the top or bottom depending on direction"
+   exclusive or master is located."
   [siths sith]
-  (println "find-location")
   (let [direction (:direction sith)]
     (if (= :up direction)
       (+  1 (current-sith-position siths (get-in sith [:master :id]) direction))
@@ -73,7 +73,6 @@
     it into it's location; remove it from the pending requests
     because it's finished so no longer pending or remove all pending requests
     because :obi-wan-is-here at some siths"
-   (println ":handle-update-siths")
    (let [siths (:siths db)
          location (find-location siths sith)
          buttons (:buttons db)
@@ -94,7 +93,6 @@
  (fn [requests [_ cancel-chan direction id]]
    "We're pending a request from the server for a sith with this id,
     add it to pending"
-   (println ":handle-pending-requests")
    (assoc requests direction {:id id :channel cancel-chan})))
 
 ;;;;;;;;;;;;;;;;;;;;;;; set-sith handler
@@ -102,7 +100,6 @@
 (s/defn fetch-sith :- [(s/one ManyToManyChannel "ch1") (s/one ManyToManyChannel "ch2")]
   "Fetch the sith from the server."
   [id :- s/Int]
-  (println "fetch-sith | id: " id)
   (let [url (str "http://localhost:" port "/dark-jedis/" id)
         cancel-chan (chan 5)
         sith-chan (client/get url {:accepts :json
@@ -119,8 +116,6 @@
    :update-pending-requests dispatch must occur before we resolve
    the sith-channel using <!"
   [db [_ id direction location]]
-  (s/validate (s/maybe s/Int) id)
-  (println ":handle-set-sith")
   (let [siths (:siths db)
         pending (get (:requests db) direction)] 
     (when (and (pos? id) ;; valid sith?
@@ -147,12 +142,11 @@
   "closing the cancel channel, cancels
    the sith-chan. Search cljs-http issues for more"
   [channel :- ManyToManyChannel]
-  (println "cancelling request")
   (close! channel))
 
 (s/defn opposite-direction :- s/Keyword
-  "This is terrible haha and a hack of sorts. The problem is that
-   we cancel the pending requests when scrolling in the opposite
+  "This is a hack of sorts. The problem is that we cancel
+   the pending requests when scrolling in the opposite direction
    that they were loaded from"
   [direction :- db/Direction]
   (case direction
@@ -166,7 +160,6 @@
    due to scrolling while the sith is being fetched from the server. In
    this case, the sith's position, after scroll, is <0 or >4"
   [requests :- db/Requests siths :- db/Siths direction :- db/Direction]
-  (println "cancel-obsolete-pending-request!")
   (let [ch (:channel (get requests (opposite-direction direction)))
         blanks (count-blanks siths direction)]
     (if (and ch (zero? blanks))
@@ -180,7 +173,6 @@
    that we remove from one side, and we add the default blank-sith-template
    to the other"
   [siths :- db/Siths direction :- db/Direction]
-  (println "shift | direction: " direction)
   (if (= direction :up)
     (push-up (push-up siths))
     (push-down (push-down siths))))
@@ -189,7 +181,6 @@
   "Shift the deque up or down, depending on direction, and possibly
    cancel the only pending request in that direction"
   [db [_ direction e]]
-  (println ":handle-button-click | direction: " direction)
   (let [siths (-> (:siths db)
                   (shift direction)
                   (set-direction direction))
@@ -217,7 +208,6 @@
 (s/defn cancel-all-requests! :- nil
   "Cancel all pending requests"
   [requests :- db/Requests]
-  (println "cancel-all-requests")
   (let [ch1 (-> requests :up :channel)
         ch2 (-> requests :down :channel)]
     (when ch1
@@ -230,7 +220,6 @@
    and updating :obi-wan-is-here field in all siths, and
    conditionally remove all pending requests"
   [db [_ planet]]
-    (println ":handle-ws-message | planet: " planet)
     (let [planet (clojure.walk/keywordize-keys planet)
           siths (new-deque
                  (map (update-obi-wan-is-here planet)

@@ -13,7 +13,6 @@
   (println "dev mode"))
 
 (defn connect-to-websocket []
-  (println "connect-to-websocket")
   (go-loop []
     (let [{:keys [ws-channel]} (<! (ws-ch "ws://localhost:4000"
                                           {:format :json
@@ -23,13 +22,11 @@
       (recur))))
 
 (defn mount-root []
-  (println "mount-root")
   (re-frame/dispatch [:set-sith 3616 :up 0])
   (reagent/render [views/main]
                   (.getElementById js/document "app")))
 
 (defn ^:export init [] 
-  (println "init")
   (connect-to-websocket)
   (re-frame/dispatch-sync [:initialize-db])
   (mount-root))
