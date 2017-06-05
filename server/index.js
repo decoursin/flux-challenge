@@ -4,8 +4,11 @@ var worlds = require('./worlds');
 // API backend =======================================================
 var express = require('express');
 var bodyParser = require('body-parser');
+var serveIndex = require('serve-index');
+var path = require('path');
 var app = express();
-var REST_PORT = 3000;
+var REST_PORT = process.env.PORT || 3000;
+
 app.use(bodyParser.json());
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
@@ -67,6 +70,9 @@ app.get('/dark-jedis/:id', function (req, res) {
   }, delay);
 });
 
+app.use('/', express.static('../index.html'));
+app.use(express.static('../'));
+
 var server = app.listen(REST_PORT, function () {
   var host = this.address().address;
   var port = this.address().port;
@@ -75,10 +81,8 @@ var server = app.listen(REST_PORT, function () {
 });
 
 // Websocket =============================================
-var WS_PORT = 4000;
-var wsHttpServer = require('http').createServer();
 var WebSocketServer = require('ws').Server
-var wss = new WebSocketServer({ server: wsHttpServer })
+var wss = new WebSocketServer({ server: server });
 var timeout;
 
 wss.on('connection', function connection(ws) {
@@ -108,8 +112,4 @@ wss.on('connection', function connection(ws) {
   }
 
   resetTimeout();
-});
-
-wsHttpServer.listen(WS_PORT, function () {
-  console.log('WebSocket server listening on ' + wsHttpServer.address().port)
 });

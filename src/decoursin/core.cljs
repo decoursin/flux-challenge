@@ -14,7 +14,7 @@
 
 (defn connect-to-websocket []
   (go-loop []
-    (let [{:keys [ws-channel]} (<! (ws-ch "ws://localhost:4000"
+    (let [{:keys [ws-channel]} (<! (ws-ch (.replace (.-origin (.-location js/document)) "http" "ws")
                                           {:format :json
                                            :read-ch (a/chan 10)}))
           {:keys [message error]} (<! ws-channel)]

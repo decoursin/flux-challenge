@@ -10,7 +10,7 @@
             [re-frame.core :as re-frame]
             [schema.core :as s]))
 
-(def ^:const port 3000)
+;; (def ^:const port (env "PORT"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Middleware
 
@@ -100,7 +100,7 @@
 (s/defn fetch-sith :- [(s/one ManyToManyChannel "ch1") (s/one ManyToManyChannel "ch2")]
   "Fetch the sith from the server."
   [id :- s/Int]
-  (let [url (str "http://localhost:" port "/dark-jedis/" id)
+  (let [url (str (.-origin (.-location js/document)) "/dark-jedis/" id)
         cancel-chan (chan 5)
         sith-chan (client/get url {:accepts :json
                                    :channel (chan 1 (map :body))
