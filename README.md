@@ -1,23 +1,7 @@
-# decoursin
+# Flux-challenge
 
-A [re-frame](https://github.com/Day8/re-frame) application designed to ... well, that part is up to you.
+The specification and requirements of the challenge can be found here: https://github.com/staltz/flux-challenge.
 
-## Development Mode
+You can play with my solution here: https://whispering-sierra-4999.herokuapp.com/.
 
-### Run application:
-
-```
-lein clean
-lein figwheel dev
-```
-
-Figwheel will automatically push cljs changes to the browser.
-
-Wait a bit, then browse to [http://localhost:3449](http://localhost:3449).
-
-## Production Build
-
-```
-lein clean
-lein cljsbuild once min
-```
+Thanks!

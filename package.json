@@ -1,6 +1,6 @@
 {
-  "name": "myapp",
-  "description": "a really cool app",
+  "name": "Flux-challenge",
+  "description": "",
   "version": "1.0.0",
   "scripts": {
 	"start": "cd server && npm install && npm start"
